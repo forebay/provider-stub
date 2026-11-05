@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import type { AccountsService, Provider } from "@forebay/host";
 import type { Plugin, PluginContext } from "@weivel/typescript";
+import { abortableSleep } from "./abortable-sleep.js";
 import { createHandleIr } from "./handle-ir.js";
 import { createLoginAction, listAccountsAction } from "./login-action.js";
 import { stubModels } from "./models.js";
@@ -25,7 +26,8 @@ function providerOf(context: PluginContext, accounts: () => AccountsService, sto
     settings,
     clock: Date.now,
     random: Math.random,
-    sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    sleep: abortableSleep,
+    log: (message) => context.log.warn(message),
   });
   return { models: () => stubModels(settings().modelCount), handleIr };
 }

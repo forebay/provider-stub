@@ -35,8 +35,14 @@ export function createLoginAction(dependencies: LoginDependencies): () => Promis
     if (secrets === undefined) throw new Error("this host has no secret store, which stub-auth keeps its account tokens in");
     const id = nextAccountId(existingIds(dependencies));
     mkdirSync(dirname(dependencies.store), { recursive: true });
-    dependencies.accounts().upsert({ store: dependencies.store, account: { id, email: id, label: id, enabled: true, addedAt: dependencies.clock() } });
-    await secrets.set(`account.${id}.access`, `stub-access-${id}`);
+    const secretName = `account.${id}.access`;
+    await secrets.set(secretName, `stub-access-${id}`);
+    try {
+      dependencies.accounts().upsert({ store: dependencies.store, account: { id, email: id, label: id, enabled: true, addedAt: dependencies.clock() } });
+    } catch (cause) {
+      await secrets.delete(secretName);
+      throw cause;
+    }
     return { added: id };
   };
 }

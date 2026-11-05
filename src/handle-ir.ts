@@ -16,6 +16,7 @@ export interface HandleIrDependencies {
   clock: () => number;
   random: () => number;
   sleep: (milliseconds: number, signal: AbortSignal) => Promise<void>;
+  log: (message: string) => void;
 }
 
 function failure(status: number, body: string, contentType = "text/plain"): IrFailure {
@@ -39,14 +40,25 @@ function streams(settings: StubSettings, request: IrRequest): boolean {
  *
  * @remarks A refusal of the accounts service reaches the host as the service's own thrown error, which names what to send.
  *
+ * @remarks Reporting is an effect after the decision: a report that throws is logged and the answer is still returned.
+ * An abort during the latency wait rejects and reports nothing, since no request was served.
+ *
  * @implNote The failure roll comes before the latency wait, so a failing stub fails at once. The
  * roll is reported to the accounts service as an `error`, which cools the account down for a short
  * jittered while, so a stub with `fail_rate` set also exercises the rotation and cooldown path.
  */
 export function createHandleIr(dependencies: HandleIrDependencies) {
-  const { store, clock, random, sleep } = dependencies;
+  const { store, clock, random, sleep, log } = dependencies;
 
   function report(id: string, outcome: "success" | "error"): void {
+    try {
+      reportOutcome(id, outcome);
+    } catch (cause) {
+      log(`could not report ${outcome} for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`);
+    }
+  }
+
+  function reportOutcome(id: string, outcome: "success" | "error"): void {
     dependencies.accounts().report({
       store,
       id,
@@ -64,6 +76,7 @@ export function createHandleIr(dependencies: HandleIrDependencies) {
       return overloaded();
     }
     if (settings.latencyMilliseconds > 0) await sleep(settings.latencyMilliseconds, signal);
+    signal.throwIfAborted();
     report(id, "success");
     const model = modelOf(request);
     return streams(settings, request) ? stubEvents(model, settings.responseText) : cannedResponse(model, settings.responseText);

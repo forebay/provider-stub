@@ -32,6 +32,7 @@ const handleIr = () =>
     clock: () => NOW,
     random: () => 0.9,
     sleep: async () => {},
+    log: () => {},
   });
 const request = { model: "stub-model", messages: [{ role: "user", content: [{ kind: "text" as const, text: "hi" }] }], stream: false };
 
@@ -65,6 +66,22 @@ describe("the login action", () => {
     await login()();
     const reply = (await handleIr()(request, NEVER_ABORTED)) as IrResponse;
     expect(reply.content).toEqual([{ kind: "text", text: `${DEFAULT_SETTINGS.responseText} (served by stub-model)` }]);
+  });
+});
+
+describe("a failing login", () => {
+  it("leaves no account behind when the secret cannot be stored", async () => {
+    const rejecting = { ...secrets, set: async () => { throw new Error("keychain locked"); } };
+    const action = createLoginAction({ accounts: () => library.accounts, store: library.store, secrets: rejecting, clock: () => NOW });
+    await expect(action()).rejects.toThrow(/keychain locked/);
+    expect(library.accounts.list({ store: library.store }).accounts ?? []).toEqual([]);
+  });
+
+  it("removes the secret again when the account cannot be stored", async () => {
+    const refusing = { ...library.accounts, upsert: () => { throw new Error("store is locked"); } };
+    const action = createLoginAction({ accounts: () => refusing, store: library.store, secrets, clock: () => NOW });
+    await expect(action()).rejects.toThrow(/store is locked/);
+    expect(secrets.entries.size).toBe(0);
   });
 });
 

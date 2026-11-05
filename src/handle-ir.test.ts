@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { IrFailure, IrRequest, IrResponse, IrStreamEvent } from "@forebay/host";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AccountsService, IrFailure, IrRequest, IrResponse, IrStreamEvent } from "@forebay/host";
 import { contractProblems } from "../test/contract-answers.js";
 import { openTestAccounts } from "../test/accounts-library.js";
 import type { TestAccounts } from "../test/accounts-library.js";
 import { DEFAULT_SETTINGS } from "../test/settings.js";
+import { abortableSleep } from "./abortable-sleep.js";
 import { createHandleIr } from "./handle-ir.js";
 import type { StubSettings } from "./settings.js";
 
@@ -12,10 +13,12 @@ const NEVER_ABORTED = new AbortController().signal;
 
 let library: TestAccounts;
 let sleeps: number[];
+let logged: string[];
 
 beforeEach(() => {
   library = openTestAccounts();
   sleeps = [];
+  logged = [];
 });
 
 afterEach(() => {
@@ -30,9 +33,10 @@ function addAccount(id = "stub-1@example.com"): void {
   library.accounts.upsert({ store: library.store, account: { id, label: id, enabled: true } });
 }
 
-function handleWith(settings: Partial<StubSettings>, random = 0.9) {
+function handleWith(settings: Partial<StubSettings>, random = 0.9, accounts: AccountsService = library.accounts) {
   return createHandleIr({
-    accounts: () => library.accounts,
+    accounts: () => accounts,
+    log: (message) => logged.push(message),
     store: library.store,
     settings: () => ({ ...DEFAULT_SETTINGS, ...settings }),
     clock: () => NOW,
@@ -77,6 +81,10 @@ describe("the reply", () => {
       stopReason: "end_turn",
       usage: { inputTokens: 1, outputTokens: 12 },
     });
+  });
+
+  it.each([["empty", ""], ["whitespace only", "  \n\t "]])("serves the built in text when response_text is %s", async (_label, blank) => {
+    expect(textOf(await answer({ responseText: blank }, { model: "stub-pro" }))).toBe("stub response (served by stub-pro)");
   });
 
   it("answers as stub-model when the request names no model", async () => {
@@ -179,7 +187,69 @@ describe("the account", () => {
       clock: () => NOW,
       random: () => 0.9,
       sleep: async () => {},
+      log: () => {},
     });
     await expect(handle(request(), NEVER_ABORTED)).rejects.toThrow(/store is empty/);
+  });
+});
+
+describe("a failing report", () => {
+  const throwingReport = (): AccountsService => ({
+    ...library.accounts,
+    report: () => {
+      throw new Error("store is locked");
+    },
+  });
+
+  it("does not discard the reply, and logs the failure", async () => {
+    addAccount();
+    const result = (await handleWith({}, 0.9, throwingReport())(request(), NEVER_ABORTED)) as IrResponse;
+    expect(result.id).toBe("msg_stub_0001");
+    expect(logged.join(" ")).toMatch(/store is locked/);
+  });
+
+  it("does not discard the 529 either", async () => {
+    addAccount();
+    const result = (await handleWith({ failRate: 1 }, 0, throwingReport())(request(), NEVER_ABORTED)) as IrFailure;
+    expect(result.status).toBe(529);
+    expect(logged.join(" ")).toMatch(/store is locked/);
+  });
+});
+
+describe("an abort", () => {
+  it("stops during the latency wait and reports nothing", async () => {
+    addAccount();
+    const report = vi.fn(library.accounts.report);
+    const controller = new AbortController();
+    const handle = createHandleIr({
+      accounts: () => ({ ...library.accounts, report }),
+      store: library.store,
+      settings: () => ({ ...DEFAULT_SETTINGS, latencyMilliseconds: 60000 }),
+      clock: () => NOW,
+      random: () => 0.9,
+      sleep: abortableSleep,
+      log: () => {},
+    });
+    const pending = handle(request(), controller.signal);
+    controller.abort();
+    await expect(pending).rejects.toThrow(/abort/i);
+    expect(report).not.toHaveBeenCalled();
+  });
+
+  it("reports nothing when the signal fell during a wait that ignored it", async () => {
+    addAccount();
+    const report = vi.fn(library.accounts.report);
+    const controller = new AbortController();
+    const handle = createHandleIr({
+      accounts: () => ({ ...library.accounts, report }),
+      store: library.store,
+      settings: () => ({ ...DEFAULT_SETTINGS, latencyMilliseconds: 5 }),
+      clock: () => NOW,
+      random: () => 0.9,
+      sleep: async () => controller.abort(),
+      log: () => {},
+    });
+    await expect(handle(request(), controller.signal)).rejects.toThrow(/abort/i);
+    expect(report).not.toHaveBeenCalled();
   });
 });
