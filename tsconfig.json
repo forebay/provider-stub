@@ -1,19 +1,8 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "module": "nodenext",
-    "target": "esnext",
-    "sourceMap": true,
-    "declaration": true,
-    "strict": true,
-    "verbatimModuleSyntax": false,
-    "isolatedModules": true,
-    "moduleResolution": "nodenext",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "types": ["node"],
-    "lib": ["esnext"]
+    "target": "ESNext", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "strict": true, "declaration": true, "outDir": "./dist", "rootDir": ".",
+    "skipLibCheck": true, "esModuleInterop": true, "types": ["node"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "test/**/*"]
 }

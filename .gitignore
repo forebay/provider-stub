@@ -1,20 +1,11 @@
 node_modules/
 dist/
-*.log
-/.idea
+siblings/
 .idea/
-package-lock.json
-.superpowers/
-
-build/
-*/build/
-.gradle/
-
-# The TeaVM bundle is build output; the .d.ts emitted beside it from the same Java IS committed,
-# so the TypeScript seam type-checks on a clean clone before anything is built.
-src/generated/stub-provider.teavm.js
 docs/
+.superpowers/
 graphify-out/
 
 # Generated on the default branch by the release readme job.
 README.md
+site/

@@ -1,21 +1,40 @@
 {
-  "$schema": "./node_modules/@intisy/bayonet/schema/plugin.schema.json",
+  "$schema": "https://weivel.github.io/model/plugin.schema.json",
   "id": "stub-auth",
   "api": 1,
-  "entry": "dist/index.js",
+  "version": "2.0.0",
+  "entry": "dist/plugin.js",
+  "bundle": {
+    "entry": "src/plugin.ts"
+  },
   "displayName": "Stub",
   "capabilities": [
-    "provider",
-    "settings"
+    "provider"
   ],
-  "commands": [
-    {
-      "name": "stub-accounts",
-      "description": "List stub-auth demo accounts",
-      "shell": "node \"{{BUNDLE}}\" accounts",
-      "body": "Above are the stub-auth demo accounts. Report them; if none, the user can add one from the account menu."
+  "services": {
+    "provides": [
+      "stub-auth:accounts"
+    ],
+    "consumes": [
+      "accounts"
+    ]
+  },
+  "actions": {
+    "login": {
+      "label": "Add a demo account",
+      "call": {
+        "service": "stub-auth:accounts",
+        "method": "login"
+      }
+    },
+    "accounts": {
+      "label": "List demo accounts",
+      "call": {
+        "service": "stub-auth:accounts",
+        "method": "list"
+      }
     }
-  ],
+  },
   "config": {
     "defaults": {
       "account_selection_strategy": "hybrid",
@@ -26,17 +45,6 @@
       "fail_rate": 0,
       "streaming": null
     }
-  },
-  "services": {
-    "consumes": [
-      "provider-support"
-    ]
-  },
-  "publish": {
-    "jarModule": [
-      "stub-provider"
-    ],
-    "generatedReadme": true
   },
   "repo": {
     "role": "Example reference provider",

@@ -1,13 +1,38 @@
-// What each of this provider's settings is called and how a surface renders it, beside the values
-// the manifest declares. Data the settings capability answers with.
-import { COMMON_PROVIDER_CAPABILITIES, toCapabilitiesFields } from "@intisy-ai/basekit/auth";
-import type { CapabilitySchema } from "@intisy-ai/basekit";
-import { STUB_SETTINGS_SCHEMA } from "./driver.js";
+import type { PluginConfig } from "@weivel/typescript";
 
-/** This provider's settings and actions, as a capability surface renders them. */
-export const STUB_SETTINGS: CapabilitySchema = {
-  fields: [...COMMON_PROVIDER_CAPABILITIES, ...toCapabilitiesFields(STUB_SETTINGS_SCHEMA)],
-  actions: [
-    { id: "accounts", label: "List accounts", description: "Print the stub-auth demo accounts." },
-  ],
-};
+/** What this plugin's configuration says the stub should do, under names that read as code. */
+export interface StubSettings {
+  accountSelectionStrategy: string;
+  logging: boolean;
+  responseText: string;
+  modelCount: number;
+  latencyMilliseconds: number;
+  failRate: number;
+  /** Null honours the request's own stream flag; true or false forces one. */
+  streaming: boolean | null;
+}
+
+function required<T>(config: PluginConfig, key: string, type: "string" | "number" | "boolean"): T {
+  const value = config.get<unknown>(key);
+  if (value === undefined) throw new Error(`the ${key} setting is missing from stub-auth's configuration`);
+  if (typeof value !== type) throw new Error(`the ${key} setting of stub-auth must be a ${type}`);
+  return value as T;
+}
+
+function streamingOverride(config: PluginConfig): boolean | null {
+  const value = config.get<unknown>("streaming");
+  return typeof value === "boolean" ? value : null;
+}
+
+/** Reads every setting afresh, so a change made while the host runs applies to the next request. */
+export function readSettings(config: PluginConfig): StubSettings {
+  return {
+    accountSelectionStrategy: required(config, "account_selection_strategy", "string"),
+    logging: required(config, "logging", "boolean"),
+    responseText: required(config, "response_text", "string"),
+    modelCount: required(config, "model_count", "number"),
+    latencyMilliseconds: required(config, "latency_ms", "number"),
+    failRate: required(config, "fail_rate", "number"),
+    streaming: streamingOverride(config),
+  };
+}

@@ -1,0 +1,5 @@
+kind: generic
+description: The front door for the Anthropic Messages API, served by the shared host session host
+badges:
+  - npm-version
+  - npm-downloads

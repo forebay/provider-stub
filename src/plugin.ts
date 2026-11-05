@@ -1,37 +1,46 @@
-import type { Plugin, PluginContext } from "@intisy/bayonet";
-import type { Provider, ProviderSupport } from "@intisy-ai/basekit/auth";
-import type { SettingsCapability } from "@intisy-ai/basekit";
-import { driver } from "./driver.js";
-import { STUB_SETTINGS } from "./settings.js";
+import { join } from "node:path";
+import type { AccountsService, Provider } from "@forebay/host";
+import type { Plugin, PluginContext } from "@weivel/typescript";
+import { createHandleIr } from "./handle-ir.js";
+import { createLoginAction, listAccountsAction } from "./login-action.js";
+import { stubModels } from "./models.js";
+import { readSettings } from "./settings.js";
 
-// The id the manifest states under services.consumes. Named here rather than imported, because
-// importing it would link the library this service exists to keep out of the bundle.
-const PROVIDER_SUPPORT = "provider-support";
+const ACCOUNTS_STORE_FILE = "accounts.json";
+const ACTIONS_SERVICE = "stub-auth:accounts";
 
-/**
- * What an in-process host loads: the api plugin this bundle's default export carries.
- *
- * @remarks
- * The provider helpers come from the host rather than from an import, so this bundle carries no
- * copy of the library that implements them. A host offering none cannot run a provider at all, so
- * the throw names the service instead of leaving the capability silently unprovided.
- */
+function accountsOf(context: PluginContext): () => AccountsService {
+  return () => {
+    const accounts = context.services.get(context.service<AccountsService>("accounts"));
+    if (accounts === undefined) throw new Error("this host offers no accounts service, so stub-auth cannot pick an account");
+    return accounts;
+  };
+}
+
+function providerOf(context: PluginContext, accounts: () => AccountsService, store: string): Provider {
+  const settings = () => readSettings(context.config);
+  const handleIr = createHandleIr({
+    accounts,
+    store,
+    settings,
+    clock: Date.now,
+    random: Math.random,
+    sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  });
+  return { models: () => stubModels(settings().modelCount), handleIr };
+}
+
 const plugin: Plugin = {
-  activate(context: PluginContext) {
-    const support = context.services.get(context.service<ProviderSupport>(PROVIDER_SUPPORT));
-    if (!support) throw new Error(`this host offers no "${PROVIDER_SUPPORT}" service, so it cannot run a provider`);
-    context.provide(context.capability<Provider>("provider"), support.capability(driver));
-    context.provide(context.capability<SettingsCapability>("settings"), {
-      schema: () => STUB_SETTINGS,
-      run: async (actionId: string) => {
-        if (actionId !== "accounts") return { ok: false, message: `unknown action: ${actionId}` };
-        support.printAccounts(driver.id, driver.accounts);
-        return { ok: true };
-      },
+  activate(context) {
+    const accounts = accountsOf(context);
+    const store = join(context.paths.plugin, ACCOUNTS_STORE_FILE);
+    context.provide(context.capability<Provider>("provider"), providerOf(context, accounts, store));
+    context.services.register(context.service(ACTIONS_SERVICE), {
+      login: createLoginAction({ accounts, store, secrets: context.secrets, clock: Date.now }),
+      list: listAccountsAction({ accounts, store }),
     });
   },
   deactivate() {},
 };
 
-/** This plugin, as an api host loads it. */
 export default plugin;
