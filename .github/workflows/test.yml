@@ -12,10 +12,10 @@ jobs:
       toolchains: node
       runners: '["ubuntu-latest","windows-latest","macos-latest"]'
       extra_repositories: |
-        forebay/host siblings/host 5b8ef30b01aeda3bc92a04b905fc4e7f6e3885de
+        forebay/host siblings/host 301427f23bfd8c083838a815faa2732df52872a9
         weivel/model siblings/host/siblings/model 606988fb178b04d3f53835e6d982c09f31081ef1
         weivel/typescript siblings/host/siblings/typescript 46bf872abbfcfe164294a9b3daa40fa0c26fff77
-        forebay/library siblings/library 692a613a493ec43aaa1099a28eee74ffe0e3e567
+        forebay/library siblings/library ae0a1c388594c26c881f27835c07e6ea8a8c02ff
       node_install: npm ci --prefix siblings/host/siblings/model && npm ci --prefix siblings/host/siblings/typescript && npm ci --prefix siblings/host && npm ci
       node_build: cmake -S siblings/library -B siblings/library/build && cmake --build siblings/library/build --config Release --target apps && npm run build --prefix siblings/host/siblings/typescript && npm run build --prefix siblings/host && npm run build
       node_test: npm test
