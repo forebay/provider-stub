@@ -9,7 +9,7 @@ jobs:
   test:
     uses: intisy/workflows/.github/workflows/test.yml@main
     with:
-      toolchains: node cmake
+      toolchains: node
       runners: '["ubuntu-latest","windows-latest","macos-latest"]'
       extra_repositories: |
         forebay/host siblings/host 5b8ef30b01aeda3bc92a04b905fc4e7f6e3885de
