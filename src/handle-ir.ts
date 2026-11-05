@@ -17,6 +17,8 @@ export interface HandleIrDependencies {
   random: () => number;
   sleep: (milliseconds: number, signal: AbortSignal) => Promise<void>;
   log: (message: string) => void;
+  /** The command that logs a stub account in, `forebay-host action <host> stub-auth login`, which a request no account serves is told to run. */
+  loginCommand: string;
 }
 
 function failure(status: number, body: string, contentType = "text/plain"): IrFailure {
@@ -85,7 +87,7 @@ export function createHandleIr(dependencies: HandleIrDependencies) {
   return async (request: IrRequest, signal: AbortSignal): Promise<HandleIrResult> => {
     const settings = dependencies.settings();
     const acquired = dependencies.accounts().acquire({ store, strategy: settings.accountSelectionStrategy, now: clock() });
-    if (acquired.none === true || acquired.id === undefined) return failure(400, "no stub account, run the login action");
+    if (acquired.none === true || acquired.id === undefined) return failure(400, `no stub account, run ${dependencies.loginCommand}`);
     if (acquired.available === false) return failure(503, "all stub accounts are cooling down");
     return serve(acquired.id, request, signal, settings);
   };

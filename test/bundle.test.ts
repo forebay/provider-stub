@@ -42,6 +42,8 @@ describe("the catalog item", () => {
       service: (id: string) => ({ id }),
       config: { get: (key: string) => MANIFEST_DEFAULTS[key], all: () => MANIFEST_DEFAULTS },
       paths: { plugin: out },
+      host: { api: 1, app: "the-loader", surfaces: [] },
+      manifest: { id: "stub-auth" },
       provide: (_type: unknown, implementation: Provider) => {
         provider = implementation;
       },

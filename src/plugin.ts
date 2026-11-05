@@ -28,6 +28,7 @@ function providerOf(context: PluginContext, accounts: () => AccountsService, sto
     random: Math.random,
     sleep: abortableSleep,
     log: (message) => context.log.warn(message),
+    loginCommand: `forebay-host action ${context.host.app} ${context.manifest.id} login`,
   });
   return { models: () => stubModels(settings().modelCount), handleIr };
 }

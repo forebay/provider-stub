@@ -48,6 +48,7 @@ function host(accounts: AccountsService | null): Hosted {
     paths: { plugin: pluginDirectory },
     secrets: fakeSecrets(),
     manifest: { id: "stub-auth" },
+    host: { api: 1, app: "the-loader", surfaces: [] },
     provide: (type: { id: string }, implementation: unknown) => provided.set(type.id, implementation),
     services: {
       get: (type: { id: string }) => (type.id === "accounts" ? accounts ?? undefined : undefined),
@@ -71,7 +72,7 @@ describe("the manifest", () => {
     expect(MANIFEST.config.defaults).toEqual({
       account_selection_strategy: "hybrid",
       logging: true,
-      response_text: "Hello from stub-auth: the basekit auth pipeline works end to end.",
+      response_text: "Hello from stub-auth: the provider pipeline works end to end.",
       model_count: 3,
       latency_ms: 0,
       fail_rate: 0,
@@ -103,7 +104,7 @@ describe("activation", () => {
 
   it("answers 400 until the login action ran, then the configured text, with the store in the plugin's folder", async () => {
     const { provider, registered, settings, pluginDirectory } = await activated();
-    expect(((await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrFailure).status).toBe(400);
+    expect(await provider.handleIr(REQUEST, NEVER_ABORTED)).toMatchObject({ status: 400, body: "no stub account, run forebay-host action the-loader stub-auth login" });
     settings.response_text = "after login";
     await registered.get("stub-auth:accounts")?.login?.({});
     const reply = (await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrResponse;
