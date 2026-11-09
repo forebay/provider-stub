@@ -71,6 +71,13 @@ describe("the login action", () => {
 });
 
 describe("a failing login", () => {
+  it("raises the store's refusal and keeps no token for the account it refused", async () => {
+    const refusing = { ...library.accounts, upsert: () => ({ refused: "the store is locked", fix: "close the other host" }) };
+    const refused = createLoginAction({ accounts: () => refusing, store: library.store, secrets, clock: () => NOW });
+    await expect(refused()).rejects.toThrow(/the store is locked; close the other host/);
+    expect(secrets.entries.size).toBe(0);
+  });
+
   it("leaves no account behind when the secret cannot be stored", async () => {
     const rejecting = { ...secrets, set: async () => { throw new Error("keychain locked"); } };
     const action = createLoginAction({ accounts: () => library.accounts, store: library.store, secrets: rejecting, clock: () => NOW });

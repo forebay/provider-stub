@@ -38,7 +38,8 @@ export function createLoginAction(dependencies: LoginDependencies): () => Promis
     const secretName = `account.${id}.access`;
     await secrets.set(secretName, `stub-access-${id}`);
     try {
-      dependencies.accounts().upsert({ store: dependencies.store, account: { id, email: id, label: id, enabled: true, addedAt: dependencies.clock() } });
+      const { refused, fix } = dependencies.accounts().upsert({ store: dependencies.store, account: { id, email: id, label: id, enabled: true, addedAt: dependencies.clock() } });
+      if (refused !== undefined) throw new Error(`the account could not be stored: ${refused}; ${fix ?? "check the accounts store, then retry"}`);
     } catch (cause) {
       await secrets.delete(secretName);
       throw cause;
