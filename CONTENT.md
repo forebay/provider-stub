@@ -14,4 +14,4 @@ end without reaching any real upstream.
 ## Testing
 
 `npm test` builds, type-checks and runs vitest. The tests use the real `accounts` service of a built
-`forebay/library`, and the plugin is bundled with the host's `bundlePlugin` and run from the bundle alone.
+`forebay-library`, and the plugin is bundled with the host's `bundlePlugin` and run from the bundle alone.
