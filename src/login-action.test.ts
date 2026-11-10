@@ -32,7 +32,7 @@ const handleIr = () =>
     clock: () => NOW,
     random: () => 0.9,
     sleep: async () => {},
-    loginCommand: "forebay-host action claude-code-loader stub-auth login",
+    loginCommand: "forebay-host action claude-code-loader provider-stub login",
     log: () => {},
   });
 const request = { model: "stub-model", messages: [{ role: "user", content: [{ kind: "text" as const, text: "hi" }] }], stream: false };

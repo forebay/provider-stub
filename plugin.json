@@ -1,6 +1,6 @@
 {
   "$schema": "https://weivel.github.io/model/plugin.schema.json",
-  "id": "stub-auth",
+  "id": "provider-stub",
   "api": 1,
   "version": "2.0.0",
   "entry": "dist/plugin.js",
@@ -13,7 +13,7 @@
   ],
   "services": {
     "provides": [
-      "stub-auth:accounts"
+      "provider-stub:accounts"
     ],
     "consumes": [
       "accounts"
@@ -23,14 +23,14 @@
     "login": {
       "label": "Add a demo account",
       "call": {
-        "service": "stub-auth:accounts",
+        "service": "provider-stub:accounts",
         "method": "login"
       }
     },
     "accounts": {
       "label": "List demo accounts",
       "call": {
-        "service": "stub-auth:accounts",
+        "service": "provider-stub:accounts",
         "method": "list"
       }
     }
@@ -39,7 +39,7 @@
     "defaults": {
       "account_selection_strategy": "hybrid",
       "logging": true,
-      "response_text": "Hello from stub-auth: the provider pipeline works end to end.",
+      "response_text": "Hello from provider-stub: the provider pipeline works end to end.",
       "model_count": 3,
       "latency_ms": 0,
       "fail_rate": 0,

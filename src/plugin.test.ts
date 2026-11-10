@@ -36,7 +36,7 @@ afterEach(() => {
 });
 
 function host(accounts: AccountsService | null): Hosted {
-  const pluginDirectory = mkdtempSync(join(tmpdir(), "stub-auth-plugin-"));
+  const pluginDirectory = mkdtempSync(join(tmpdir(), "provider-stub-plugin-"));
   directories.push(pluginDirectory);
   const settings: Record<string, unknown> = { ...MANIFEST_DEFAULTS };
   const provided = new Map<string, unknown>();
@@ -47,7 +47,7 @@ function host(accounts: AccountsService | null): Hosted {
     config: { get: (key: string) => settings[key], all: () => settings },
     paths: { plugin: pluginDirectory },
     secrets: fakeSecrets(),
-    manifest: { id: "stub-auth" },
+    manifest: { id: "provider-stub" },
     host: { api: 1, app: "the-loader", surfaces: [] },
     provide: (type: { id: string }, implementation: unknown) => provided.set(type.id, implementation),
     services: {
@@ -66,13 +66,13 @@ async function activated(accounts: AccountsService | null = library.accounts): P
 
 describe("the manifest", () => {
   it("is a provider that consumes the accounts service, with the defaults the stub always had", () => {
-    expect(MANIFEST.id).toBe("stub-auth");
+    expect(MANIFEST.id).toBe("provider-stub");
     expect(MANIFEST.capabilities).toEqual(["provider"]);
     expect(MANIFEST.services.consumes).toEqual(["accounts"]);
     expect(MANIFEST.config.defaults).toEqual({
       account_selection_strategy: "hybrid",
       logging: true,
-      response_text: "Hello from stub-auth: the provider pipeline works end to end.",
+      response_text: "Hello from provider-stub: the provider pipeline works end to end.",
       model_count: 3,
       latency_ms: 0,
       fail_rate: 0,
@@ -104,9 +104,9 @@ describe("activation", () => {
 
   it("answers 400 until the login action ran, then the configured text, with the store in the plugin's folder", async () => {
     const { provider, registered, settings, pluginDirectory } = await activated();
-    expect(await provider.handleIr(REQUEST, NEVER_ABORTED)).toMatchObject({ status: 400, body: "no stub account, run forebay-host action the-loader stub-auth login" });
+    expect(await provider.handleIr(REQUEST, NEVER_ABORTED)).toMatchObject({ status: 400, body: "no stub account, run forebay-host action the-loader provider-stub login" });
     settings.response_text = "after login";
-    await registered.get("stub-auth:accounts")?.login?.({});
+    await registered.get("provider-stub:accounts")?.login?.({});
     const reply = (await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrResponse;
     expect(reply.content).toEqual([{ kind: "text", text: "after login (served by stub-pro)" }]);
     expect(library.accounts.list({ store: join(pluginDirectory, "accounts.json") }).accounts).toHaveLength(1);
@@ -114,8 +114,8 @@ describe("activation", () => {
 
   it("lists the accounts the login action added", async () => {
     const { registered } = await activated();
-    await registered.get("stub-auth:accounts")?.login?.({});
-    expect(await registered.get("stub-auth:accounts")?.list?.({})).toEqual({ accounts: [{ id: "stub-1@example.com", enabled: true }] });
+    await registered.get("provider-stub:accounts")?.login?.({});
+    expect(await registered.get("provider-stub:accounts")?.list?.({})).toEqual({ accounts: [{ id: "stub-1@example.com", enabled: true }] });
   });
 
   it("names the missing accounts service when a request needs it, rather than answering as if there were no account", async () => {

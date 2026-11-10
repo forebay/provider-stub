@@ -32,7 +32,7 @@ function existingIds(dependencies: AccountActionDependencies): string[] {
 export function createLoginAction(dependencies: LoginDependencies): () => Promise<{ added: string }> {
   return async () => {
     const { secrets } = dependencies;
-    if (secrets === undefined) throw new Error("this host has no secret store, which stub-auth keeps its account tokens in");
+    if (secrets === undefined) throw new Error("this host has no secret store, which provider-stub keeps its account tokens in");
     const id = nextAccountId(existingIds(dependencies));
     mkdirSync(dirname(dependencies.store), { recursive: true });
     const secretName = `account.${id}.access`;

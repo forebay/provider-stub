@@ -4,7 +4,7 @@ end without reaching any real upstream.
 
 ## Structure
 
-- `src/plugin.ts`: provides the capability and registers the `stub-auth:accounts` service the actions call.
+- `src/plugin.ts`: provides the capability and registers the `provider-stub:accounts` service the actions call.
 - `src/handle-ir.ts`: picks an account through the host's `accounts` service, rolls `fail_rate`, waits `latency_ms`
   and answers the canned reply, or the six stream events when streaming applies.
 - `src/login-action.ts`: the `login` action adds `stub-<n>@example.com` and keeps its token in the plugin's secrets;

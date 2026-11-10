@@ -8,12 +8,12 @@ import { stubModels } from "./models.js";
 import { readSettings } from "./settings.js";
 
 const ACCOUNTS_STORE_FILE = "accounts.json";
-const ACTIONS_SERVICE = "stub-auth:accounts";
+const ACTIONS_SERVICE = "provider-stub:accounts";
 
 function accountsOf(context: PluginContext): () => AccountsService {
   return () => {
     const accounts = context.services.get(context.service<AccountsService>("accounts"));
-    if (accounts === undefined) throw new Error("this host offers no accounts service, so stub-auth cannot pick an account");
+    if (accounts === undefined) throw new Error("this host offers no accounts service, so provider-stub cannot pick an account");
     return accounts;
   };
 }

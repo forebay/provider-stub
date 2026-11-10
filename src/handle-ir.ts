@@ -17,7 +17,7 @@ export interface HandleIrDependencies {
   random: () => number;
   sleep: (milliseconds: number, signal: AbortSignal) => Promise<void>;
   log: (message: string) => void;
-  /** The command that logs a stub account in, `forebay-host action <host> stub-auth login`, which a request no account serves is told to run. */
+  /** The command that logs a stub account in, `forebay-host action <host> provider-stub login`, which a request no account serves is told to run. */
   loginCommand: string;
 }
 

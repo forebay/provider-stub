@@ -14,8 +14,8 @@ export interface StubSettings {
 
 function required<T>(config: PluginConfig, key: string, type: "string" | "number" | "boolean"): T {
   const value = config.get<unknown>(key);
-  if (value === undefined) throw new Error(`the ${key} setting is missing from stub-auth's configuration`);
-  if (typeof value !== type) throw new Error(`the ${key} setting of stub-auth must be a ${type}`);
+  if (value === undefined) throw new Error(`the ${key} setting is missing from provider-stub's configuration`);
+  if (typeof value !== type) throw new Error(`the ${key} setting of provider-stub must be a ${type}`);
   return value as T;
 }
 

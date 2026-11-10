@@ -10,7 +10,7 @@ export const MANIFEST_DEFAULTS: Record<string, unknown> = MANIFEST.config.defaul
 export const DEFAULT_SETTINGS: StubSettings = {
   accountSelectionStrategy: "hybrid",
   logging: true,
-  responseText: "Hello from stub-auth: the provider pipeline works end to end.",
+  responseText: "Hello from provider-stub: the provider pipeline works end to end.",
   modelCount: 3,
   latencyMilliseconds: 0,
   failRate: 0,

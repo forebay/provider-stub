@@ -37,7 +37,7 @@ function handleWith(settings: Partial<StubSettings>, random = 0.9, accounts: Acc
   return createHandleIr({
     accounts: () => accounts,
     log: (message) => logged.push(message),
-    loginCommand: "forebay-host action claude-code-loader stub-auth login",
+    loginCommand: "forebay-host action claude-code-loader provider-stub login",
     store: library.store,
     settings: () => ({ ...DEFAULT_SETTINGS, ...settings }),
     clock: () => NOW,
@@ -165,7 +165,7 @@ describe("latency", () => {
 describe("the account", () => {
   it("answers 400 telling the user to run the login action when there is no account", async () => {
     const failure = (await handleWith({})(request(), NEVER_ABORTED)) as IrFailure;
-    expect(failure).toMatchObject({ status: 400, body: "no stub account, run forebay-host action claude-code-loader stub-auth login" });
+    expect(failure).toMatchObject({ status: 400, body: "no stub account, run forebay-host action claude-code-loader provider-stub login" });
     expect(contractProblems("HandleIrAnswer", failure)).toEqual([]);
   });
 
@@ -188,7 +188,7 @@ describe("the account", () => {
       clock: () => NOW,
       random: () => 0.9,
       sleep: async () => {},
-      loginCommand: "forebay-host action claude-code-loader stub-auth login",
+      loginCommand: "forebay-host action claude-code-loader provider-stub login",
       log: () => {},
     });
     await expect(handle(request(), NEVER_ABORTED)).rejects.toThrow(/store is empty/);
@@ -230,7 +230,7 @@ describe("an abort", () => {
       clock: () => NOW,
       random: () => 0.9,
       sleep: abortableSleep,
-      loginCommand: "forebay-host action claude-code-loader stub-auth login",
+      loginCommand: "forebay-host action claude-code-loader provider-stub login",
       log: () => {},
     });
     const pending = handle(request(), controller.signal);
@@ -250,7 +250,7 @@ describe("an abort", () => {
       clock: () => NOW,
       random: () => 0.9,
       sleep: async () => controller.abort(),
-      loginCommand: "forebay-host action claude-code-loader stub-auth login",
+      loginCommand: "forebay-host action claude-code-loader provider-stub login",
       log: () => {},
     });
     await expect(handle(request(), controller.signal)).rejects.toThrow(/abort/i);

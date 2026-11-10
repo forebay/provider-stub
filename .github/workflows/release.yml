@@ -51,7 +51,7 @@ jobs:
       tag: ${{ inputs.tag }}
       patch_ceiling: 20
       require_clean_readme: false
-      unscoped_name: 'stub-auth'
+      unscoped_name: 'provider-stub'
       scope: 'intisy-ai'
       pin_file_deps: true
       readme_from_default_branch: true

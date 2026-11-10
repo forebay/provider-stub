@@ -29,7 +29,7 @@ export interface TestAccounts {
 }
 
 export function openTestAccounts(): TestAccounts {
-  const base = mkdtempSync(join(tmpdir(), "stub-auth-"));
+  const base = mkdtempSync(join(tmpdir(), "provider-stub-"));
   const library: ForebayLibrary = openForebayLibrary(builtLibrary(), () => ({ environment: {}, home: join(base, "home"), arguments: [] }));
   return {
     accounts: library.accounts,

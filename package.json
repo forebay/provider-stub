@@ -1,5 +1,5 @@
 {
-  "name": "stub-auth",
+  "name": "provider-stub",
   "version": "2.0.0",
   "description": "A fake AI provider on the shared host: canned responses that prove the account and routing pipeline end to end.",
   "main": "dist/plugin.js",
@@ -8,7 +8,7 @@
   "author": "intisy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/forebay/stub-auth.git"
+    "url": "git+https://github.com/forebay/provider-stub.git"
   },
   "keywords": [
     "provider",

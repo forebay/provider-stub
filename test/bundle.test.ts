@@ -14,7 +14,7 @@ const REPOSITORY = join(import.meta.dirname, "..");
 let out: string;
 
 beforeEach(() => {
-  out = mkdtempSync(join(tmpdir(), "stub-auth-bundle-"));
+  out = mkdtempSync(join(tmpdir(), "provider-stub-bundle-"));
 });
 
 afterEach(() => {
@@ -24,7 +24,7 @@ afterEach(() => {
 describe("the catalog item", () => {
   it("bundles into the entry its manifest names, importing nothing but Node's builtins", async () => {
     const bundled = await bundlePlugin(REPOSITORY, out);
-    expect(bundled.id).toBe("stub-auth");
+    expect(bundled.id).toBe("provider-stub");
     expect(Object.keys(bundled.files).sort()).toEqual(["dist/plugin.js", "plugin.json"]);
     const manifest = JSON.parse(readFileSync(join(out, "plugin.json"), "utf8"));
     expect(manifest.capabilities).toEqual(["provider"]);
@@ -43,7 +43,7 @@ describe("the catalog item", () => {
       config: { get: (key: string) => MANIFEST_DEFAULTS[key], all: () => MANIFEST_DEFAULTS },
       paths: { plugin: out },
       host: { api: 1, app: "the-loader", surfaces: [] },
-      manifest: { id: "stub-auth" },
+      manifest: { id: "provider-stub" },
       provide: (_type: unknown, implementation: Provider) => {
         provider = implementation;
       },
