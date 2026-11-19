@@ -1,5 +1,4 @@
 {
-  "$schema": "https://weivel.github.io/model/plugin.schema.json",
   "id": "provider-stub",
   "api": 1,
   "version": "2.0.0",
