@@ -83,10 +83,13 @@ export type HandleAnswer =
 
 export type NextAnswer = { readonly kind: 1; readonly event: IrEvent } | { readonly kind: 2 };
 
+/** A call's token; a uint64 out of C may arrive as a number or as a bigint. */
+export type Token = bigint | number;
+
 export interface HandleArgument {
   readonly request: IrRequest;
   readonly headers: readonly Pair[];
-  readonly token: bigint;
+  readonly token: Token;
 }
 
 /** The `forebay.provider` contract as this plugin offers it, in the binding's shapes. */
@@ -94,7 +97,7 @@ export interface Provider {
   models(input: Record<string, never>): Promise<{ provider: CatalogProvider }>;
   handle(input: { argument: HandleArgument }): Promise<HandleAnswer>;
   next(input: { stream: Stream }): Promise<NextAnswer>;
-  cancel(input: { argument: { token: bigint } }): Promise<void>;
+  cancel(input: { argument: { token: Token } }): Promise<void>;
 }
 
 export interface StoredAccount {
@@ -129,6 +132,18 @@ export interface Accounts {
   report(input: { argument: ReportArgument }): Promise<{ changed: number }>;
 }
 
+/** Bytes C wrote and the reply they go out in. */
+export interface Body {
+  readonly bytes: Uint8Array;
+  readonly status: number;
+  readonly headers: readonly Pair[];
+}
+
+/** forebay-library's `anthropic` service, the operation this plugin calls. */
+export interface Anthropic {
+  error_envelope(input: { argument: { reply_kind: number; message: string } }): Promise<Body>;
+}
+
 export interface Config {
   get_tree(input: { key: string }): Promise<unknown>;
 }
@@ -148,6 +163,8 @@ export const NEXT = { EVENT: 1, END: 2 } as const;
 export const IR_BLOCK_TEXT = 1;
 
 export const IR_EVENT = { MESSAGE_START: 1, CONTENT_BLOCK_START: 2, TEXT_DELTA: 3, CONTENT_BLOCK_STOP: 7, MESSAGE_DELTA: 8, MESSAGE_STOP: 9 } as const;
+
+export const REPLY_KIND = { PROVIDER_FAILURE: 3 } as const;
 
 export const ACQUIRE = { CLAIMED: 1, NONE: 2 } as const;
 

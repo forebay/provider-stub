@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RunningHost } from "@weivel/typescript/program";
@@ -13,7 +13,7 @@ const DEFAULT_TEXT = "Hello from provider-stub: the provider pipeline works end 
 interface Answered {
   readonly kind: number;
   readonly response?: { readonly model: string; readonly stop_reason: string; readonly content: readonly { readonly kind: number; readonly text: string }[] };
-  readonly failure?: { readonly status: number; readonly body: string; readonly headers: readonly { name: string; value: string }[] };
+  readonly failure?: { readonly status: number; readonly body: string; readonly headers: readonly { name: string; value: string }[]; readonly has_retry_after?: number; readonly retry_after_milliseconds?: number };
   readonly stream?: unknown;
   readonly message?: string;
 }
@@ -136,14 +136,58 @@ describe("provider-stub under the host program, over runtime in a temporary home
     expect(after.provider.models.map((model) => model.id)).toEqual(["stub-model", "stub-pro", "stub-fast"]);
   }, RUN_BOUND);
 
-  it("answers 503 with an overloaded error when no account can serve", async () => {
+  it("answers 503 in the error shape C writes, naming the login action, when no account can serve", async () => {
     const { host } = await started();
 
     const answer = await callsOf(host).handle(argument(1n));
 
     expect(answer.kind).toBe(2);
-    expect(answer.failure?.status).toBe(503);
-    expect(JSON.parse(answer.failure!.body)).toMatchObject({ type: "error", error: { type: "overloaded_error" } });
+    expect(answer.failure).toMatchObject({ status: 503, has_retry_after: 0 });
+    expect(JSON.parse(answer.failure!.body)).toMatchObject({ type: "error", error: { type: "api_error", message: expect.stringContaining("login action") } });
+  }, RUN_BOUND);
+
+  it.each(["hybrid", "round-robin"])("answers 503 saying when to retry while every account is cooling, under %s", async (strategy) => {
+    const { host } = await started({ fail_rate: 1, account_selection_strategy: strategy });
+    await accountsOf(host).login();
+    const calls = callsOf(host);
+
+    const failed = await calls.handle(argument(1n));
+    const cooling = await calls.handle(argument(2n));
+
+    expect(failed.failure?.status).toBe(529);
+    expect(cooling.failure).toMatchObject({ status: 503, has_retry_after: 1 });
+    expect(JSON.parse(cooling.failure!.body)).toMatchObject({ type: "error", error: { type: "api_error", message: expect.stringContaining("cooling") } });
+  }, RUN_BOUND);
+
+  it("answers THROWN with the message of a setting it cannot read", async () => {
+    const { host } = await started({ response_text: 5 });
+    await accountsOf(host).login();
+
+    const answer = await callsOf(host).handle(argument(1n));
+
+    expect(answer.kind).toBe(4);
+    expect(answer.message).toContain("response_text");
+  }, RUN_BOUND);
+
+  it("refuses an account_selection_strategy it does not know", async () => {
+    const { host } = await started({ account_selection_strategy: "fastest" });
+    await accountsOf(host).login();
+
+    const answer = await callsOf(host).handle(argument(1n));
+
+    expect(answer.kind).toBe(4);
+    expect(answer.message).toContain("account_selection_strategy");
+  }, RUN_BOUND);
+
+  it("answers THROWN with the message of an acquire the accounts service refuses", async () => {
+    const { home: made, host } = await started();
+    await accountsOf(host).login();
+    writeFileSync(storeIn(made)!, "not a store");
+
+    const answer = await callsOf(host).handle(argument(1n));
+
+    expect(answer.kind).toBe(4);
+    expect(answer.message).toContain("provider-stub could not serve the request");
   }, RUN_BOUND);
 
   it("answers a plain reply with the canned text", async () => {

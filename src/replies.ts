@@ -36,9 +36,8 @@ export function cannedEvents(model: string, responseText: string): IrEvent[] {
   ];
 }
 
-/** A failure in the shape of Anthropic's `overloaded_error`, with when to retry where that is known. */
-export function overloaded(status: number, message: string, retryAfterMilliseconds?: number): IrFailure {
+/** A failure in the shape of Anthropic's `overloaded_error`, as the upstream answers one. */
+export function overloaded(status: number, message: string): IrFailure {
   const body = JSON.stringify({ type: "error", error: { type: "overloaded_error", message } });
-  const failure = { status, headers: [{ name: "content-type", value: "application/json" }], body };
-  return retryAfterMilliseconds === undefined ? failure : { ...failure, has_retry_after: 1, retry_after_milliseconds: retryAfterMilliseconds };
+  return { status, headers: [{ name: "content-type", value: "application/json" }], body };
 }

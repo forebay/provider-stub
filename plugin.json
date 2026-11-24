@@ -14,7 +14,7 @@
   },
   "services": {
     "provides": ["provider-stub:accounts"],
-    "consumes": ["accounts", "weivel.config", "weivel.paths", "weivel.log"]
+    "consumes": ["accounts", "anthropic", "weivel.config", "weivel.paths", "weivel.log"]
   },
   "actions": {
     "login": {
