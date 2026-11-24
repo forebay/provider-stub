@@ -1,5 +1,5 @@
 kind: generic
-description: The front door for the Anthropic Messages API, served by the shared host session host
+description: The reference provider, a weivel plugin answering forebay-library's forebay.provider contract with canned replies
 badges:
   - npm-version
   - npm-downloads
