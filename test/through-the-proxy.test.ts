@@ -5,7 +5,9 @@ import { join } from "node:path";
 import type { RunningHost } from "@weivel/typescript/program";
 import { freePort } from "@weivel/typescript/testing";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { bundled, homeWith, hostIn, loggedIn, REPOSITORY, stubInstall, type Home, type Install } from "./fixtures/home.js";
+import { bundled, homeWith, hostIn, loggedIn, realPlacesSnapshot, REPOSITORY, stubInstall, type Home, type Install } from "./fixtures/home.js";
+
+const realBefore = realPlacesSnapshot();
 
 const RUN_BOUND = 60_000;
 const PROXY = join(REPOSITORY, "siblings", "claude-code-proxy");
@@ -13,6 +15,7 @@ const MODEL = "stub-model";
 const SERVED_TEXT = "Hello from provider-stub: the provider pipeline works end to end. (served by stub-model)";
 const CANCELLED_LINE = "provider-stub's call was cancelled before it was served";
 const UNREACHABLE_UPSTREAM = "http://127.0.0.1:9";
+const PROXY_LOGIN_COMMAND = "spisor-host action claude-code-loader";
 
 interface Answer {
   readonly status: number;
@@ -74,13 +77,15 @@ async function listening(port: number): Promise<void> {
   }
 }
 
-/** A home with the stub logged in once through the program's ACTION mode, then serving beside the pinned proxy. */
-async function served(stubSettings: Record<string, unknown> = {}): Promise<{ home: Home; host: RunningHost; port: number }> {
+/** A home with the stub beside the pinned proxy, logged in once through the program's ACTION mode unless `withAccount` is false. */
+async function served(stubSettings: Record<string, unknown> = {}, withAccount = true): Promise<{ home: Home; host: RunningHost; port: number }> {
   const port = await freePort();
   const home = homeWith([proxyInstall(port), stubInstall(stubBundle, stubSettings)]);
   homes.push(home);
-  const login = await hostIn(home, ["action", "provider-stub", "login", "{}"]);
-  expect(await login.ended).toBe(0);
+  if (withAccount) {
+    const login = await hostIn(home, ["action", "provider-stub", "login", "{}"]);
+    expect(await login.ended).toBe(0);
+  }
   const host = await hostIn(home);
   hosts.push(host);
   await listening(port);
@@ -131,4 +136,17 @@ describe("provider-stub behind the pinned claude-code-proxy, in one home", () =>
 
     expect(loggedIn(home)).toContain(CANCELLED_LINE);
   }, RUN_BOUND);
+
+  it("names the login command when no stub account is there to serve", async () => {
+    const { port } = await served({}, false);
+
+    const answer = await sent(port, "POST", "/v1/messages", messages(false));
+
+    expect(answer.status, answer.body).not.toBe(200);
+    expect(answer.body).toContain(PROXY_LOGIN_COMMAND);
+  }, RUN_BOUND);
+
+  it("left the real home's places as they were", () => {
+    expect(realPlacesSnapshot()).toEqual(realBefore);
+  });
 });
