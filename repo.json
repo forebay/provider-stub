@@ -15,7 +15,7 @@
     {
       "id": "github:1427561829",
       "importName": "typescript",
-      "commit": "4f714ea850005e007e5707dbe424c5e2a6aed0e1"
+      "commit": "a7a23d5cb624a2ccbdb702737b3b3e6f0e25625c"
     },
     {
       "id": "github:1455223370",
@@ -90,7 +90,7 @@
     {
       "id": "github:1298569559",
       "importName": "claude-code-proxy",
-      "commit": "56bdecf70e0103bf96e561503d3c14d43621c5f1"
+      "commit": "5227b929071f2f48c6d7183b9e68d39e0b9a1753"
     }
   ]
 }

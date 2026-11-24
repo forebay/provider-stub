@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RunningHost } from "@weivel/typescript/program";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import type { ProviderEnums } from "../src/contract.js";
 import { bundled, homeWith, hostIn, realPlacesSnapshot, REPOSITORY, stubInstall, type Home, type Install } from "./fixtures/home.js";
 
 const realBefore = realPlacesSnapshot();
@@ -20,6 +21,7 @@ interface Answered {
 
 interface Calls {
   count(): number;
+  enums(): ProviderEnums;
   models(): Promise<{ provider: { provider: string; models: { id: string; name: string }[]; has_ranking: number; default_model: string } }>;
   handle(argument: unknown): Promise<Answered>;
   next(stream: unknown): Promise<{ kind: number; event?: { kind: number; text?: string } }>;
@@ -79,6 +81,10 @@ function callsOf(host: RunningHost): Calls {
   return calls;
 }
 
+function enumsOf(host: RunningHost): ProviderEnums {
+  return callsOf(host).enums();
+}
+
 function accountsOf(host: RunningHost): Accounts {
   const accounts = host.service<Accounts>("provider-stub", "provider-stub:accounts");
   if (accounts === undefined) throw new Error("provider-stub registered no accounts service");
@@ -86,7 +92,7 @@ function accountsOf(host: RunningHost): Accounts {
 }
 
 function argument(token: bigint, stream = 0): unknown {
-  return { request: { model: "stub-model", messages: [{ role: "user", content: [{ kind: 1, text: "hi" }] }], stream }, headers: [], token };
+  return { request: { model: "stub-model", messages: [{ role: "user", content: [{ text: "hi" }] }], stream }, headers: [], token };
 }
 
 async function action(made: Home, name: string): Promise<number> {
@@ -141,7 +147,7 @@ describe("provider-stub under the host program, over runtime in a temporary home
 
     const answer = await callsOf(host).handle(argument(1n));
 
-    expect(answer.kind).toBe(2);
+    expect(answer.kind).toBe(enumsOf(host).forebay_provider_handle_kind.FOREBAY_PROVIDER_HANDLE_FAILURE);
     expect(answer.failure).toMatchObject({ status: 503, has_retry_after: 0 });
     expect(JSON.parse(answer.failure!.body)).toMatchObject({ type: "error", error: { type: "api_error", message: expect.stringContaining("login action") } });
   }, RUN_BOUND);
@@ -165,7 +171,7 @@ describe("provider-stub under the host program, over runtime in a temporary home
 
     const answer = await callsOf(host).handle(argument(1n));
 
-    expect(answer.kind).toBe(4);
+    expect(answer.kind).toBe(enumsOf(host).forebay_provider_handle_kind.FOREBAY_PROVIDER_HANDLE_THROWN);
     expect(answer.message).toContain("response_text");
   }, RUN_BOUND);
 
@@ -175,7 +181,7 @@ describe("provider-stub under the host program, over runtime in a temporary home
 
     const answer = await callsOf(host).handle(argument(1n));
 
-    expect(answer.kind).toBe(4);
+    expect(answer.kind).toBe(enumsOf(host).forebay_provider_handle_kind.FOREBAY_PROVIDER_HANDLE_THROWN);
     expect(answer.message).toContain("account_selection_strategy");
   }, RUN_BOUND);
 
@@ -186,7 +192,7 @@ describe("provider-stub under the host program, over runtime in a temporary home
 
     const answer = await callsOf(host).handle(argument(1n));
 
-    expect(answer.kind).toBe(4);
+    expect(answer.kind).toBe(enumsOf(host).forebay_provider_handle_kind.FOREBAY_PROVIDER_HANDLE_THROWN);
     expect(answer.message).toContain("provider-stub could not serve the request");
   }, RUN_BOUND);
 
@@ -196,8 +202,8 @@ describe("provider-stub under the host program, over runtime in a temporary home
 
     const answer = await callsOf(host).handle(argument(1n));
 
-    expect(answer.kind, answer.message).toBe(1);
-    expect(answer.response).toMatchObject({ model: "stub-model", stop_reason: "end_turn", content: [{ kind: 1, text: DEFAULT_TEXT }] });
+    expect(answer.kind, answer.message).toBe(enumsOf(host).forebay_provider_handle_kind.FOREBAY_PROVIDER_HANDLE_RESPONSE);
+    expect(answer.response).toMatchObject({ model: "stub-model", stop_reason: "end_turn", content: [{ kind: enumsOf(host).forebay_ir_block_kind.FOREBAY_IR_BLOCK_TEXT, text: DEFAULT_TEXT }] });
   }, RUN_BOUND);
 
   it("answers a streamed reply as the six events of a text message, then its end", async () => {
@@ -205,16 +211,24 @@ describe("provider-stub under the host program, over runtime in a temporary home
     await accountsOf(host).login();
     const calls = callsOf(host);
 
+    const { forebay_provider_handle_kind: handleKind, forebay_provider_next_kind: nextKind, forebay_ir_event_kind: eventKind } = calls.enums();
     const answer = await calls.handle(argument(1n, 1));
     const kinds: number[] = [];
     let text = "";
-    for (let next = await calls.next(answer.stream); next.kind === 1; next = await calls.next(answer.stream)) {
+    for (let next = await calls.next(answer.stream); next.kind === nextKind.FOREBAY_PROVIDER_NEXT_EVENT; next = await calls.next(answer.stream)) {
       kinds.push(next.event!.kind);
       text += next.event!.text ?? "";
     }
 
-    expect(answer.kind, answer.message).toBe(3);
-    expect(kinds).toEqual([1, 2, 3, 7, 8, 9]);
+    expect(answer.kind, answer.message).toBe(handleKind.FOREBAY_PROVIDER_HANDLE_STREAM);
+    expect(kinds).toEqual([
+      eventKind.FOREBAY_IR_EVENT_MESSAGE_START,
+      eventKind.FOREBAY_IR_EVENT_CONTENT_BLOCK_START,
+      eventKind.FOREBAY_IR_EVENT_TEXT_DELTA,
+      eventKind.FOREBAY_IR_EVENT_CONTENT_BLOCK_STOP,
+      eventKind.FOREBAY_IR_EVENT_MESSAGE_DELTA,
+      eventKind.FOREBAY_IR_EVENT_MESSAGE_STOP,
+    ]);
     expect(text).toBe(DEFAULT_TEXT);
   }, RUN_BOUND);
 
@@ -229,7 +243,7 @@ describe("provider-stub under the host program, over runtime in a temporary home
     await calls.cancel(7n);
     const answer = await answering;
 
-    expect(answer.kind).toBe(4);
+    expect(answer.kind).toBe(enumsOf(host).forebay_provider_handle_kind.FOREBAY_PROVIDER_HANDLE_THROWN);
     expect(Date.now() - began).toBeLessThan(LONG_LATENCY / 2);
   }, RUN_BOUND);
 
@@ -241,7 +255,7 @@ describe("provider-stub under the host program, over runtime in a temporary home
     await expect(calls.cancel(99n)).resolves.toBeUndefined();
     const answer = await calls.handle(argument(99n));
 
-    expect(answer.kind, answer.message).toBe(1);
+    expect(answer.kind, answer.message).toBe(enumsOf(host).forebay_provider_handle_kind.FOREBAY_PROVIDER_HANDLE_RESPONSE);
   }, RUN_BOUND);
 
   it("cancels only the call its token names when two run together", async () => {
@@ -254,8 +268,9 @@ describe("provider-stub under the host program, over runtime in a temporary home
     await waited(200);
     await calls.cancel(1n);
 
-    expect((await cancelled).kind).toBe(4);
-    expect((await kept).kind).toBe(1);
+    const { FOREBAY_PROVIDER_HANDLE_THROWN, FOREBAY_PROVIDER_HANDLE_RESPONSE } = enumsOf(host).forebay_provider_handle_kind;
+    expect((await cancelled).kind).toBe(FOREBAY_PROVIDER_HANDLE_THROWN);
+    expect((await kept).kind).toBe(FOREBAY_PROVIDER_HANDLE_RESPONSE);
   }, RUN_BOUND);
 
   it("logs an account in and lists the accounts through the program's ACTION mode", async () => {

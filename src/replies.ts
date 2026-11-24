@@ -1,4 +1,4 @@
-import { IR_BLOCK_TEXT, IR_EVENT, type IrEvent, type IrFailure, type IrResponse, type IrUsage } from "./contract.js";
+import type { IrEvent, IrFailure, IrResponse, IrUsage, ProviderEnums } from "./contract.js";
 
 const CANNED_MESSAGE_ID = "msg_stub_0001";
 const INPUT_TOKENS = 1;
@@ -14,25 +14,26 @@ function servedText(model: string, responseText: string): string {
   return `${text} (served by ${model})`;
 }
 
-export function cannedResponse(model: string, responseText: string): IrResponse {
+export function cannedResponse(model: string, responseText: string, enums: ProviderEnums): IrResponse {
   return {
     id: CANNED_MESSAGE_ID,
     model,
     stop_reason: "end_turn",
-    content: [{ kind: IR_BLOCK_TEXT, text: servedText(model, responseText) }],
+    content: [{ kind: enums.forebay_ir_block_kind.FOREBAY_IR_BLOCK_TEXT, text: servedText(model, responseText) }],
     usage: usage(OUTPUT_TOKENS),
   };
 }
 
 /** The canned reply as the six events of a streamed text message. */
-export function cannedEvents(model: string, responseText: string): IrEvent[] {
+export function cannedEvents(model: string, responseText: string, enums: ProviderEnums): IrEvent[] {
+  const event = enums.forebay_ir_event_kind;
   return [
-    { kind: IR_EVENT.MESSAGE_START, id: CANNED_MESSAGE_ID, model, role: "assistant", usage: usage(0) },
-    { kind: IR_EVENT.CONTENT_BLOCK_START, index: 0, block_kind: IR_BLOCK_TEXT },
-    { kind: IR_EVENT.TEXT_DELTA, index: 0, text: servedText(model, responseText) },
-    { kind: IR_EVENT.CONTENT_BLOCK_STOP, index: 0 },
-    { kind: IR_EVENT.MESSAGE_DELTA, stop_reason: "end_turn", usage: usage(OUTPUT_TOKENS) },
-    { kind: IR_EVENT.MESSAGE_STOP },
+    { kind: event.FOREBAY_IR_EVENT_MESSAGE_START, id: CANNED_MESSAGE_ID, model, role: "assistant", usage: usage(0) },
+    { kind: event.FOREBAY_IR_EVENT_CONTENT_BLOCK_START, index: 0, block_kind: enums.forebay_ir_block_kind.FOREBAY_IR_BLOCK_TEXT },
+    { kind: event.FOREBAY_IR_EVENT_TEXT_DELTA, index: 0, text: servedText(model, responseText) },
+    { kind: event.FOREBAY_IR_EVENT_CONTENT_BLOCK_STOP, index: 0 },
+    { kind: event.FOREBAY_IR_EVENT_MESSAGE_DELTA, stop_reason: "end_turn", usage: usage(OUTPUT_TOKENS) },
+    { kind: event.FOREBAY_IR_EVENT_MESSAGE_STOP },
   ];
 }
 

@@ -1,8 +1,8 @@
 import { join } from "node:path";
-import type { PluginContext } from "@weivel/typescript/context";
+import type { DescribedEnums, PluginContext } from "@weivel/typescript/context";
 import type { Plugin } from "@weivel/typescript/host";
 import { accountActions } from "./account-actions.js";
-import type { Accounts, Anthropic, Config, Log, Paths, Provider } from "./contract.js";
+import type { Accounts, Anthropic, Config, Enums, Log, Paths, Provider } from "./contract.js";
 import { stubProvider } from "./provider.js";
 
 const PROVIDER_CAPABILITY = "forebay.provider";
@@ -15,20 +15,36 @@ function required<Service>(context: PluginContext, id: string): Service {
   return service;
 }
 
+/** The enums a description carries, read as the names this plugin reads of them. */
+function described<Read>(enums: DescribedEnums | undefined, of: string): Read {
+  if (enums === undefined) throw new Error(`provider-stub reads the enums of ${of}, and no description carries them`);
+  return enums as unknown as Read;
+}
+
 const plugin: Plugin = {
   async activate(context) {
     const accounts = required<Accounts>(context, "accounts");
+    const anthropic = required<Anthropic>(context, "anthropic");
+    const log = required<Log>(context, "weivel.log");
+    const providerType = context.capability<Provider>(PROVIDER_CAPABILITY);
+    const enums: Enums = {
+      provider: described(context.capabilities.enumsOf(providerType), PROVIDER_CAPABILITY),
+      anthropic: described(context.services.enumsOf(anthropic), "anthropic"),
+      accounts: described(context.services.enumsOf(accounts), "accounts"),
+      log: described(context.services.enumsOf(log), "weivel.log"),
+    };
     const store = join(await required<Paths>(context, "weivel.paths").plugin({}), ACCOUNTS_STORE_FILE);
     const dependencies = {
       accounts,
-      anthropic: required<Anthropic>(context, "anthropic"),
+      anthropic,
       config: required<Config>(context, "weivel.config"),
-      log: required<Log>(context, "weivel.log"),
+      log,
+      enums,
       store,
       clock: Date.now,
       random: Math.random,
     };
-    context.provide(context.capability<Provider>(PROVIDER_CAPABILITY), stubProvider(dependencies));
+    context.provide(providerType, stubProvider(dependencies));
     context.services.register(context.service(ACTIONS_SERVICE), accountActions(accounts, store, Date.now));
   },
   deactivate() {},

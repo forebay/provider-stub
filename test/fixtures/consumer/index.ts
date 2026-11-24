@@ -1,7 +1,7 @@
 interface Context {
   service(id: string): unknown;
   capability(id: string): unknown;
-  readonly capabilities: { all(capability: unknown): unknown[] };
+  readonly capabilities: { all(capability: unknown): unknown[]; enumsOf(capability: unknown): object | undefined };
   readonly services: { register(service: unknown, object: object): unknown };
 }
 
@@ -13,8 +13,9 @@ interface Provider {
 }
 
 /**
- * A plugin consuming `forebay.provider` that hands the test every call of the contract through the service
- * `consumer:calls`, so the test calls the stub as a proxy does, through the capability the host verified.
+ * A plugin consuming `forebay.provider` that hands the test every call of the contract, and the enums its description
+ * carries, through the service `consumer:calls`, so the test calls the stub as a proxy does, through the capability the
+ * host verified.
  */
 export default {
   activate(context: Context): void {
@@ -26,6 +27,7 @@ export default {
     };
     context.services.register(context.service("consumer:calls"), {
       count: () => providers().length,
+      enums: () => context.capabilities.enumsOf(context.capability("forebay.provider")),
       models: () => only().models({}),
       handle: (argument: unknown) => only().handle({ argument }),
       next: (stream: unknown) => only().next({ stream }),
