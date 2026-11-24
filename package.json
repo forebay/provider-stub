@@ -1,7 +1,7 @@
 {
   "name": "provider-stub",
-  "version": "2.0.0",
-  "description": "A fake AI provider on the shared host: canned responses that prove the account and routing pipeline end to end.",
+  "version": "3.0.0",
+  "description": "A fake AI provider, a weivel plugin providing forebay.provider: canned replies that prove the account and routing pipeline end to end.",
   "main": "dist/plugin.js",
   "type": "module",
   "license": "MIT",
@@ -13,7 +13,8 @@
   "keywords": [
     "provider",
     "stub",
-    "auth",
+    "weivel",
+    "forebay",
     "example"
   ],
   "files": [
@@ -23,18 +24,16 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "npm run build && tsc --noEmit && vitest run",
+    "test": "node scripts/native.ts && npm run build && tsc --noEmit && vitest run",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@forebay/host": "file:./siblings/host",
     "@types/node": "22.10.2",
-    "@weivel/typescript": "file:./siblings/host/siblings/typescript",
-    "ajv": "8.17.1",
+    "@weivel/typescript": "file:./siblings/typescript",
     "typescript": "5.7.2",
     "vitest": "3.2.7"
   }

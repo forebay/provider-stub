@@ -1,22 +1,20 @@
 {
-  "id": "provider-stub",
   "api": 1,
-  "version": "2.0.0",
+  "importName": "provider-stub",
+  "id": "provider-stub",
+  "version": "3.0.0",
   "entry": "dist/plugin.js",
   "bundle": {
     "entry": "src/plugin.ts"
   },
   "displayName": "Stub",
-  "capabilities": [
-    "provider"
-  ],
+  "capabilities": {
+    "provides": ["forebay.provider"],
+    "consumes": []
+  },
   "services": {
-    "provides": [
-      "provider-stub:accounts"
-    ],
-    "consumes": [
-      "accounts"
-    ]
+    "provides": ["provider-stub:accounts"],
+    "consumes": ["accounts", "weivel.config", "weivel.paths", "weivel.log"]
   },
   "actions": {
     "login": {
@@ -48,8 +46,6 @@
   "repo": {
     "role": "Example reference provider",
     "category": "ai-provider",
-    "tech": [
-      "typescript"
-    ]
+    "tech": ["typescript"]
   }
 }

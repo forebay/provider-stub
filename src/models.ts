@@ -1,6 +1,8 @@
-import type { ModelsAnswer } from "@forebay/host";
+import type { CatalogModel, CatalogProvider } from "./contract.js";
 
-const DEFAULT_MODEL_ID = "stub-model";
+export const PROVIDER_NAME = "provider-stub";
+export const DEFAULT_MODEL_ID = "stub-model";
+
 const NAMED_MODELS = [
   { id: DEFAULT_MODEL_ID, name: "Stub Default" },
   { id: "stub-pro", name: "Stub Pro" },
@@ -9,14 +11,13 @@ const NAMED_MODELS = [
 const CONTEXT_WINDOW = 200000;
 const OUTPUT_LIMIT = 64000;
 
-function modelAt(index: number): { id: string; name: string } {
-  return NAMED_MODELS[index] ?? { id: `stub-${index + 1}`, name: `Stub ${index + 1}` };
+function modelAt(index: number): CatalogModel {
+  const named = NAMED_MODELS[index] ?? { id: `stub-${index + 1}`, name: `Stub ${index + 1}` };
+  return { ...named, has_context: 1, context: CONTEXT_WINDOW, has_output: 1, output: OUTPUT_LIMIT };
 }
 
-/** The first `count` stub models, never fewer than one. */
-export function stubModels(count: number): ModelsAnswer {
-  const models = Array.from({ length: Math.max(1, count) }, (_, index) => ({ ...modelAt(index), context: CONTEXT_WINDOW, output: OUTPUT_LIMIT }));
-  return { models, defaultModelId: DEFAULT_MODEL_ID };
+/** The stub's catalog entry: the first `count` stub models, never fewer than one, or none while no account can serve. */
+export function stubCatalog(count: number, serving: boolean): CatalogProvider {
+  const models = serving ? Array.from({ length: Math.max(1, count) }, (_, index) => modelAt(index)) : [];
+  return { provider: PROVIDER_NAME, models, has_ranking: 0, default_model: DEFAULT_MODEL_ID };
 }
-
-export { DEFAULT_MODEL_ID };

@@ -1,49 +1,35 @@
 import { join } from "node:path";
-import type { AccountsService, Provider } from "@forebay/host";
-import type { Plugin, PluginContext } from "@weivel/typescript";
-import { abortableSleep } from "./abortable-sleep.js";
-import { createHandleIr } from "./handle-ir.js";
-import { createLoginAction, listAccountsAction } from "./login-action.js";
-import { stubModels } from "./models.js";
-import { readSettings } from "./settings.js";
+import type { PluginContext } from "@weivel/typescript/context";
+import { accountActions } from "./account-actions.js";
+import type { Accounts, Config, Log, Paths } from "./contract.js";
+import { stubProvider } from "./provider.js";
 
-const ACCOUNTS_STORE_FILE = "accounts.json";
+const PROVIDER_CAPABILITY = "forebay.provider";
 const ACTIONS_SERVICE = "provider-stub:accounts";
+const ACCOUNTS_STORE_FILE = "accounts.json";
 
-function accountsOf(context: PluginContext): () => AccountsService {
-  return () => {
-    const accounts = context.services.get(context.service<AccountsService>("accounts"));
-    if (accounts === undefined) throw new Error("this host offers no accounts service, so provider-stub cannot pick an account");
-    return accounts;
-  };
+function required<Service>(context: PluginContext, id: string): Service {
+  const service = context.services.get(context.service<Service>(id));
+  if (service === undefined) throw new Error(`provider-stub reaches no ${id} service`);
+  return service;
 }
 
-function providerOf(context: PluginContext, accounts: () => AccountsService, store: string): Provider {
-  const settings = () => readSettings(context.config);
-  const handleIr = createHandleIr({
-    accounts,
-    store,
-    settings,
-    clock: Date.now,
-    random: Math.random,
-    sleep: abortableSleep,
-    log: (message) => context.log.warn(message),
-    loginCommand: `forebay-host action ${context.host.app} ${context.manifest.id} login`,
-  });
-  return { models: () => stubModels(settings().modelCount), handleIr };
-}
-
-const plugin: Plugin = {
-  activate(context) {
-    const accounts = accountsOf(context);
-    const store = join(context.paths.plugin, ACCOUNTS_STORE_FILE);
-    context.provide(context.capability<Provider>("provider"), providerOf(context, accounts, store));
-    context.services.register(context.service(ACTIONS_SERVICE), {
-      login: createLoginAction({ accounts, store, secrets: context.secrets, clock: Date.now }),
-      list: listAccountsAction({ accounts, store }),
-    });
+const plugin = {
+  async activate(context: PluginContext): Promise<void> {
+    const accounts = required<Accounts>(context, "accounts");
+    const store = join(await required<Paths>(context, "weivel.paths").plugin({}), ACCOUNTS_STORE_FILE);
+    const dependencies = {
+      accounts,
+      config: required<Config>(context, "weivel.config"),
+      log: required<Log>(context, "weivel.log"),
+      store,
+      clock: Date.now,
+      random: Math.random,
+    };
+    context.provide(context.capability(PROVIDER_CAPABILITY), stubProvider(dependencies));
+    context.services.register(context.service(ACTIONS_SERVICE), accountActions(accounts, store, Date.now));
   },
-  deactivate() {},
+  deactivate(): void {},
 };
 
 export default plugin;
