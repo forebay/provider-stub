@@ -15,7 +15,7 @@
     {
       "id": "github:1427561829",
       "importName": "typescript",
-      "commit": "ad75057698341adc9c0d3580402ed623b1243f81"
+      "commit": "72cda3be758fbb87f3102c7118dbe1d20368b004"
     },
     {
       "id": "github:1455223370",
@@ -26,13 +26,13 @@
     {
       "id": "github:1456093642",
       "importName": "standard",
-      "commit": "832decb50711a34db9bf0d572f26fc4a52e5046f",
+      "commit": "a89f781acddf845b92d4abd405e8b93e1ac7d775",
       "path": "siblings/typescript/siblings/standard"
     },
     {
       "id": "github:1426141679",
       "importName": "conformance",
-      "commit": "69ae95292f98e9c96c2bd8eabbc7a9bd282a4727",
+      "commit": "19217bfd6477a6433ee75213b795fa117eefdfc3",
       "path": "siblings/typescript/siblings/conformance"
     },
     {
@@ -90,7 +90,7 @@
     {
       "id": "github:1298569559",
       "importName": "claude-code-proxy",
-      "commit": "a0df3d7c4b830927ae76cec775884572075fe5e9"
+      "commit": "778dd98f8605c89f0c37d557abfa7811db751c0f"
     }
   ]
 }

@@ -1,8 +1,8 @@
 import { join } from "node:path";
-import type { DescribedEnums, PluginContext } from "@weivel/typescript/context";
+import type { PluginContext } from "@weivel/typescript/context";
 import type { Plugin } from "@weivel/typescript/host";
 import { accountActions } from "./account-actions.js";
-import type { Accounts, Anthropic, Config, Enums, Log, Paths, Provider } from "./contract.js";
+import { ACCOUNTS_ENUM_NAMES, ANTHROPIC_ENUM_NAMES, LOG_ENUM_NAMES, PROVIDER_ENUM_NAMES, type Accounts, type Anthropic, type Config, type Enums, type Log, type Paths, type Provider } from "./contract.js";
 import { stubProvider } from "./provider.js";
 
 const PROVIDER_CAPABILITY = "forebay.provider";
@@ -15,10 +15,21 @@ function required<Service>(context: PluginContext, id: string): Service {
   return service;
 }
 
-/** The enums a description carries, read as the names this plugin reads of them. */
-function described<Read>(enums: DescribedEnums | undefined, of: string): Read {
-  if (enums === undefined) throw new Error(`provider-stub reads the enums of ${of}, and no description carries them`);
-  return enums as unknown as Read;
+/**
+ * Every enum entry this plugin reads, from the descriptions of what it reaches, refusing the activation when one lacks
+ * a name it reads.
+ *
+ * @implNote They are read once, at the activation, which holds because a header's enums are append-only: an entry never
+ * changes its number while the plugin runs.
+ */
+function enumsOf(context: PluginContext, reached: { accounts: Accounts; anthropic: Anthropic; log: Log }): Enums {
+  const { services, capabilities } = context;
+  return {
+    provider: context.requireEnums(capabilities.enumsOf(context.capability(PROVIDER_CAPABILITY)), PROVIDER_ENUM_NAMES, PROVIDER_CAPABILITY),
+    anthropic: context.requireEnums(services.enumsOf(reached.anthropic), ANTHROPIC_ENUM_NAMES, "anthropic"),
+    accounts: context.requireEnums(services.enumsOf(reached.accounts), ACCOUNTS_ENUM_NAMES, "accounts"),
+    log: context.requireEnums(services.enumsOf(reached.log), LOG_ENUM_NAMES, "weivel.log"),
+  };
 }
 
 const plugin: Plugin = {
@@ -27,12 +38,7 @@ const plugin: Plugin = {
     const anthropic = required<Anthropic>(context, "anthropic");
     const log = required<Log>(context, "weivel.log");
     const providerType = context.capability<Provider>(PROVIDER_CAPABILITY);
-    const enums: Enums = {
-      provider: described(context.capabilities.enumsOf(providerType), PROVIDER_CAPABILITY),
-      anthropic: described(context.services.enumsOf(anthropic), "anthropic"),
-      accounts: described(context.services.enumsOf(accounts), "accounts"),
-      log: described(context.services.enumsOf(log), "weivel.log"),
-    };
+    const enums = enumsOf(context, { accounts, anthropic, log });
     const store = join(await required<Paths>(context, "weivel.paths").plugin({}), ACCOUNTS_STORE_FILE);
     const dependencies = {
       accounts,

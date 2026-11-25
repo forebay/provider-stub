@@ -1,3 +1,5 @@
+import type { RequiredEnums } from "@weivel/typescript/context";
+
 /**
  * The shapes weivel/typescript's binding gives the definitions this plugin provides and calls: each operation one
  * async method taking its input parameters by name and answering its answer struct without its sizes, counts and
@@ -163,39 +165,38 @@ export interface Log {
   write(input: { level: number; message: string }): Promise<void>;
 }
 
-type Entries<Name extends string> = Readonly<Record<Name, number>>;
-
 /**
  * The enums this plugin reads, by the names forebay-library's and the standard's headers spell them. Only the names
  * are written here: the numbers are the descriptions', which the plugin's context answers.
  */
-export interface ProviderEnums {
-  readonly forebay_provider_handle_kind: Entries<"FOREBAY_PROVIDER_HANDLE_RESPONSE" | "FOREBAY_PROVIDER_HANDLE_FAILURE" | "FOREBAY_PROVIDER_HANDLE_STREAM" | "FOREBAY_PROVIDER_HANDLE_THROWN">;
-  readonly forebay_provider_next_kind: Entries<"FOREBAY_PROVIDER_NEXT_EVENT" | "FOREBAY_PROVIDER_NEXT_END">;
-  readonly forebay_ir_block_kind: Entries<"FOREBAY_IR_BLOCK_TEXT">;
-  readonly forebay_ir_event_kind: Entries<
-    | "FOREBAY_IR_EVENT_MESSAGE_START"
-    | "FOREBAY_IR_EVENT_CONTENT_BLOCK_START"
-    | "FOREBAY_IR_EVENT_TEXT_DELTA"
-    | "FOREBAY_IR_EVENT_CONTENT_BLOCK_STOP"
-    | "FOREBAY_IR_EVENT_MESSAGE_DELTA"
-    | "FOREBAY_IR_EVENT_MESSAGE_STOP"
-  >;
-}
+export const PROVIDER_ENUM_NAMES = {
+  forebay_provider_handle_kind: ["FOREBAY_PROVIDER_HANDLE_RESPONSE", "FOREBAY_PROVIDER_HANDLE_FAILURE", "FOREBAY_PROVIDER_HANDLE_STREAM", "FOREBAY_PROVIDER_HANDLE_THROWN"],
+  forebay_provider_next_kind: ["FOREBAY_PROVIDER_NEXT_EVENT", "FOREBAY_PROVIDER_NEXT_END"],
+  forebay_ir_block_kind: ["FOREBAY_IR_BLOCK_TEXT"],
+  forebay_ir_event_kind: ["FOREBAY_IR_EVENT_MESSAGE_START", "FOREBAY_IR_EVENT_CONTENT_BLOCK_START", "FOREBAY_IR_EVENT_TEXT_DELTA", "FOREBAY_IR_EVENT_CONTENT_BLOCK_STOP", "FOREBAY_IR_EVENT_MESSAGE_DELTA", "FOREBAY_IR_EVENT_MESSAGE_STOP"],
+} as const;
 
-export interface AnthropicEnums {
-  readonly forebay_reply_kind: Entries<"FOREBAY_REPLY_PROVIDER_FAILURE">;
-}
+export type ProviderEnums = RequiredEnums<typeof PROVIDER_ENUM_NAMES>;
 
-export interface AccountsEnums {
-  readonly forebay_accounts_acquire_kind: Entries<"FOREBAY_ACCOUNTS_CLAIMED">;
-  readonly forebay_accounts_strategy: Entries<"FOREBAY_ACCOUNTS_STICKY" | "FOREBAY_ACCOUNTS_ROUND_ROBIN" | "FOREBAY_ACCOUNTS_HYBRID">;
-  readonly forebay_accounts_report_outcome: Entries<"FOREBAY_ACCOUNTS_SUCCESS" | "FOREBAY_ACCOUNTS_ERROR">;
-}
+export const ANTHROPIC_ENUM_NAMES = {
+  forebay_reply_kind: ["FOREBAY_REPLY_PROVIDER_FAILURE"],
+} as const;
 
-export interface LogEnums {
-  readonly weivel_standard_log_level: Entries<"WEIVEL_STANDARD_LOG_INFO" | "WEIVEL_STANDARD_LOG_WARN">;
-}
+export type AnthropicEnums = RequiredEnums<typeof ANTHROPIC_ENUM_NAMES>;
+
+export const ACCOUNTS_ENUM_NAMES = {
+  forebay_accounts_acquire_kind: ["FOREBAY_ACCOUNTS_CLAIMED"],
+  forebay_accounts_strategy: ["FOREBAY_ACCOUNTS_STICKY", "FOREBAY_ACCOUNTS_ROUND_ROBIN", "FOREBAY_ACCOUNTS_HYBRID"],
+  forebay_accounts_report_outcome: ["FOREBAY_ACCOUNTS_SUCCESS", "FOREBAY_ACCOUNTS_ERROR"],
+} as const;
+
+export type AccountsEnums = RequiredEnums<typeof ACCOUNTS_ENUM_NAMES>;
+
+export const LOG_ENUM_NAMES = {
+  weivel_standard_log_level: ["WEIVEL_STANDARD_LOG_INFO", "WEIVEL_STANDARD_LOG_WARN"],
+} as const;
+
+export type LogEnums = RequiredEnums<typeof LOG_ENUM_NAMES>;
 
 /** Each enum by the definition or contract whose description carries it. */
 export interface Enums {
