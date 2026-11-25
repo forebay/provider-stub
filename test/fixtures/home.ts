@@ -1,9 +1,9 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { homedir } from "node:os";
+import { mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { bundlePlugin } from "@weivel/typescript/bundle";
+import type { BoundDefinition } from "@weivel/typescript/host";
 import { startHost, type RunningHost } from "@weivel/typescript/program";
-import { scratchHome, type PlacedLibrary, type ScratchFile } from "@weivel/typescript/testing";
+import { describedLibrary, scratchHome, setVariables, type DescribedLibrary, type PlacedLibrary } from "@weivel/typescript/testing";
 
 export const REPOSITORY = resolve(import.meta.dirname, "..", "..");
 export const HOST_ID = "test-host";
@@ -24,64 +24,60 @@ export interface Home {
   remove(): void;
 }
 
-function places(base: string): Record<string, string> {
-  return {
-    SPISOR_HOME: join(base, "portable"),
-    SPISOR_STATE: join(base, "state"),
-    SPISOR_CACHE: join(base, "cache"),
-    SPISOR_SECRETS: join(base, "secrets"),
-    HOME: join(base, "user"),
-    USERPROFILE: join(base, "user"),
+interface LaidOutHome {
+  readonly variables: readonly { readonly name: string; readonly value: string }[];
+}
+
+let runtimeTesting: DescribedLibrary | undefined;
+
+/** runtime-testing's service, the test-only C library that lays a home out through runtime's own writers, loaded once. */
+function testingService(): BoundDefinition {
+  runtimeTesting ??= describedLibrary(join(NATIVE, "runtime_testing"));
+  return runtimeTesting.described.get("runtime.testing")!;
+}
+
+function hintedLibrary(id: string, placed: PlacedLibrary): Record<string, unknown> {
+  return { id, version: null, directory: placed.directory, binary: placed.binary };
+}
+
+function layOutHome(base: string, libraries: Readonly<Record<string, PlacedLibrary>>, installs: readonly Install[]): Promise<LaidOutHome> {
+  const argument = {
+    base,
+    host_id: HOST_ID,
+    installs: installs.map((install) => ({ manifest: install.manifest, entry_source: install.bundle, settings: install.settings })),
+    libraries: [hintedLibrary("runtime", libraries.runtime!), hintedLibrary("forebay-library", libraries.forebay_library!)],
+    holder: process.pid,
   };
-}
-
-function installFiles(base: string, install: Install): ScratchFile[] {
-  const { id, version, entry } = install.manifest;
-  const bundle = join(base, "cache", "bundles", id, version);
-  return [
-    { path: join(bundle, "plugin.json"), content: install.manifest },
-    { path: join(bundle, entry), copyFrom: install.bundle },
-    { path: join(bundle, ".installed.json"), content: { files: {} } },
-    { path: join(base, "application", "config", `${id}.json`), content: install.settings },
-  ];
-}
-
-function homeFiles(base: string, libraries: Readonly<Record<string, PlacedLibrary>>, installs: readonly Install[]): ScratchFile[] {
-  const enabled = Object.fromEntries(installs.map((install) => [install.manifest.id, { enabled: true }]));
-  const catalog = join(base, "catalog", "index.json");
-  return [
-    { path: catalog, content: { format: 1, items: {} } },
-    { path: join(base, "state", "hosts", `${HOST_ID}.json`), content: { id: HOST_ID, kind: "host", version: "1.0.0", home: join(base, "application") } },
-    { path: join(base, "state", "processes", `${HOST_ID}.json`), content: { pid: null, holders: [process.pid] } },
-    {
-      path: join(base, "cache", "hosts", "javascript-host.json"),
-      content: {
-        host: "2.0.0",
-        libraries: {
-          runtime: { version: "0.2.0", ...libraries.runtime },
-          koffi: { version: "2.0.0", directory: join(base, "koffi") },
-          "forebay-library": { version: "0.2.0", ...libraries.forebay_library },
-        },
-      },
-    },
-    ...installs.flatMap((install) => installFiles(base, install)),
-    { path: join(base, "application", "config", "settings.json"), content: { plugins: enabled, catalog: { sources: [{ kind: "local", path: catalog }] } } },
-  ];
+  return testingService().lay_out_home!({ argument }) as Promise<LaidOutHome>;
 }
 
 /**
- * Lays out a fresh home under the temporary directory, as an install leaves one: the registered loader `test-host`,
- * the javascript-host's hint naming runtime and forebay-library, every install enabled, and this process recorded as
- * the loader's holder, so a SERVE run keeps running. The process's places point into it until `remove`.
+ * Lays out a fresh home under the temporary directory through runtime-testing, as an install leaves one: the
+ * registered loader `test-host`, the javascript-host's hint naming runtime and forebay-library, every install enabled,
+ * and this process recorded as the loader's holder, so a SERVE run keeps running. The process's places point into it
+ * until `remove`.
  */
-export function homeWith(installs: readonly Install[]): Home {
-  const home = scratchHome({
+export async function homeWith(installs: readonly Install[]): Promise<Home> {
+  const scratch = scratchHome({
     prefix: "stub-home-",
     libraries: { runtime: join(NATIVE, "runtime"), forebay_library: join(NATIVE, "forebay_library") },
-    environment: places,
-    files: (base, libraries) => homeFiles(base, libraries, installs),
+    environment: () => ({}),
+    files: () => [],
   });
-  return { base: home.base, runtime: home.libraries.runtime!.binary, remove: home.remove };
+  try {
+    const base = join(scratch.base, "home");
+    mkdirSync(base);
+    const laidOut = await layOutHome(base, scratch.libraries, installs);
+    const restore = setVariables(Object.fromEntries(laidOut.variables.map((variable) => [variable.name, variable.value])));
+    const remove = (): void => {
+      restore();
+      scratch.remove();
+    };
+    return { base, runtime: scratch.libraries.runtime!.binary, remove };
+  } catch (error) {
+    scratch.remove();
+    throw error;
+  }
 }
 
 /** Bundles a plugin entry into one module, as a plugin's build does, under `directory`. */
@@ -106,27 +102,35 @@ export function loggedIn(home: Home): string {
   return files.map((file) => readFileSync(join(home.base, file), "utf8")).join("\n");
 }
 
-/** The places runtime resolves for this user with no override set, read before any home moves `HOME`. */
-function realPlaces(): string[] {
-  const user = homedir();
-  const portable = join(user, ".spisor");
-  if (process.platform === "win32") return [portable, join(process.env.LOCALAPPDATA ?? join(user, "AppData", "Local"), "spisor")];
-  if (process.platform === "darwin") return [portable, join(user, "Library", "Application Support", "spisor"), join(user, "Library", "Caches", "spisor")];
-  return [portable, join(process.env.XDG_STATE_HOME ?? join(user, ".local", "state"), "spisor"), join(process.env.XDG_CACHE_HOME ?? join(user, ".cache"), "spisor")];
+let realPaths: Promise<readonly string[]> | undefined;
+
+async function resolvedRealPlaces(): Promise<readonly string[]> {
+  const environment = Object.entries(process.env).flatMap(([name, value]) => (value === undefined ? [] : [{ name, value }]));
+  const answer = (await testingService().real_places!({ argument: { environment } })) as { paths: readonly string[] };
+  return answer.paths;
 }
 
-function filesUnder(directory: string): string[] {
+/** The places runtime resolves for this user with no override, read once, at the first snapshot, before any home moves them. */
+function realPlaces(): Promise<readonly string[]> {
+  realPaths ??= resolvedRealPlaces();
+  return realPaths;
+}
+
+function described(path: string): string {
+  const status = statSync(path);
+  return `${path} ${status.size} ${status.mtimeMs}`;
+}
+
+function filesAt(path: string): string[] {
   try {
-    return readdirSync(directory, { recursive: true, encoding: "utf8" }).map((file) => {
-      const status = statSync(join(directory, file));
-      return `${join(directory, file)} ${status.size} ${status.mtimeMs}`;
-    });
+    if (statSync(path).isFile()) return [described(path)];
+    return readdirSync(path, { recursive: true, encoding: "utf8" }).map((file) => described(join(path, file)));
   } catch {
     return [];
   }
 }
 
-/** Every file in the real places, each with its size and modified time. */
-export function realPlacesSnapshot(): readonly string[] {
-  return realPlaces().flatMap(filesUnder).sort();
+/** Every file in the real places, the secrets file among them, each with its size and modified time. */
+export async function realPlacesSnapshot(): Promise<readonly string[]> {
+  return [...new Set((await realPlaces()).flatMap(filesAt))].sort();
 }

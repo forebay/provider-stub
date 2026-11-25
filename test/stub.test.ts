@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ProviderEnums } from "../src/contract.js";
 import { bundled, homeWith, hostIn, realPlacesSnapshot, REPOSITORY, stubInstall, type Home, type Install } from "./fixtures/home.js";
 
-const realBefore = realPlacesSnapshot();
+const realBefore = await realPlacesSnapshot();
 const RUN_BOUND = 60_000;
 const LONG_LATENCY = 30_000;
 const DEFAULT_TEXT = "Hello from provider-stub: the provider pipeline works end to end. (served by stub-model)";
@@ -58,8 +58,8 @@ function consumerInstall(): Install {
   return { manifest, bundle: consumerBundle, settings: {} };
 }
 
-function home(settings: Record<string, unknown> = {}): Home {
-  const made = homeWith([stubInstall(stubBundle, settings), consumerInstall()]);
+async function home(settings: Record<string, unknown> = {}): Promise<Home> {
+  const made = await homeWith([stubInstall(stubBundle, settings), consumerInstall()]);
   homes.push(made);
   return made;
 }
@@ -71,7 +71,7 @@ async function serving(made: Home): Promise<RunningHost> {
 }
 
 async function started(settings: Record<string, unknown> = {}): Promise<Running> {
-  const made = home(settings);
+  const made = await home(settings);
   return { home: made, host: await serving(made) };
 }
 
@@ -274,7 +274,7 @@ describe("provider-stub under the host program, over runtime in a temporary home
   }, RUN_BOUND);
 
   it("logs an account in and lists the accounts through the program's ACTION mode", async () => {
-    const made = home();
+    const made = await home();
 
     const loggedIn = await action(made, "login");
     const listed = await action(made, "accounts");
@@ -299,7 +299,7 @@ describe("provider-stub under the host program, over runtime in a temporary home
     expect(await accounts.list()).toEqual({ accounts: [{ id: "stub-1@example.com", enabled: true }, { id: "stub-2@example.com", enabled: true }] });
   }, RUN_BOUND);
 
-  it("left the real home's places as they were", () => {
-    expect(realPlacesSnapshot()).toEqual(realBefore);
+  it("left the real home's places as they were", async () => {
+    expect(await realPlacesSnapshot()).toEqual(realBefore);
   });
 });

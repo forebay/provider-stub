@@ -7,7 +7,7 @@ import { freePort } from "@weivel/typescript/testing";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { bundled, homeWith, hostIn, loggedIn, realPlacesSnapshot, REPOSITORY, stubInstall, type Home, type Install } from "./fixtures/home.js";
 
-const realBefore = realPlacesSnapshot();
+const realBefore = await realPlacesSnapshot();
 
 const RUN_BOUND = 60_000;
 const PROXY = join(REPOSITORY, "siblings", "claude-code-proxy");
@@ -80,7 +80,7 @@ async function listening(port: number): Promise<void> {
 /** A home with the stub beside the pinned proxy, logged in once through the program's ACTION mode unless `withAccount` is false. */
 async function served(stubSettings: Record<string, unknown> = {}, withAccount = true): Promise<{ home: Home; host: RunningHost; port: number }> {
   const port = await freePort();
-  const home = homeWith([proxyInstall(port), stubInstall(stubBundle, stubSettings)]);
+  const home = await homeWith([proxyInstall(port), stubInstall(stubBundle, stubSettings)]);
   homes.push(home);
   if (withAccount) {
     const login = await hostIn(home, ["action", "provider-stub", "login", "{}"]);
@@ -146,7 +146,7 @@ describe("provider-stub behind the pinned claude-code-proxy, in one home", () =>
     expect(answer.body).toContain(PROXY_LOGIN_COMMAND);
   }, RUN_BOUND);
 
-  it("left the real home's places as they were", () => {
-    expect(realPlacesSnapshot()).toEqual(realBefore);
+  it("left the real home's places as they were", async () => {
+    expect(await realPlacesSnapshot()).toEqual(realBefore);
   });
 });

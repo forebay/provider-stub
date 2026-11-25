@@ -20,8 +20,9 @@ routing and fallback pipeline can be proven end to end without reaching any real
 
 ## Testing
 
-`npm test` builds `forebay-library` and `runtime` from `siblings/` (`scripts/native.ts`), builds, type-checks and
-runs vitest. Every test bundles the plugin and starts the real `runtime` over a temporary home with
+`npm test` builds `forebay-library`, `runtime` and the test-only `runtime_testing` from `siblings/`
+(`scripts/native.ts`), builds, type-checks and runs vitest. Every test bundles the plugin and starts the real `runtime`
+over a temporary home, laid out by `runtime_testing` through runtime's own writers, with
 `@weivel/typescript`'s host program: `test/stub.test.ts` calls the contract through a consumer plugin and runs the
 actions through the program's ACTION mode; `test/through-the-proxy.test.ts` puts the stub behind the pinned
 `claude-code-proxy` and sends it real HTTP requests.
