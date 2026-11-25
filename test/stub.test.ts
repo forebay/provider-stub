@@ -117,7 +117,7 @@ beforeAll(async () => {
 
 afterEach(async () => {
   for (const host of hosts.splice(0)) await host.stop();
-  for (const made of homes.splice(0)) made.remove();
+  for (const made of homes.splice(0).reverse()) made.remove();
 });
 
 afterAll(() => rmSync(bundles, { recursive: true, force: true }));
