@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { bundlePlugin } from "@weivel/typescript/bundle";
@@ -9,6 +10,7 @@ export const REPOSITORY = resolve(import.meta.dirname, "..", "..");
 export const HOST_ID = "test-host";
 
 const NATIVE = join(REPOSITORY, "native");
+const LIVE_RUN_FOLDERS = new Set(["logs", "processes"]);
 
 /** One plugin to install: its manifest, the bundled entry to place where the manifest names it, and its stored settings. */
 export interface Install {
@@ -116,21 +118,45 @@ function realPlaces(): Promise<readonly string[]> {
   return realPaths;
 }
 
-function described(path: string): string {
-  const status = statSync(path);
-  return `${path} ${status.size} ${status.mtimeMs}`;
+/**
+ * Whether a path under a real place is one a live host on the machine writes on every run, whatever a test does: its
+ * logs, its process records and its locks.
+ *
+ * @implNote Left out so a host the user runs beside the suite cannot fail it. A test's leak still shows, since it
+ * lands where the snapshot looks: an install, a setting, a store or the secrets file.
+ */
+function isWrittenByEveryLiveRun(relative: string): boolean {
+  const segments = relative.split(/[\\/]/);
+  return segments.some((segment) => LIVE_RUN_FOLDERS.has(segment)) || segments.at(-1)!.endsWith(".lock");
 }
 
-function filesAt(path: string): string[] {
+/** A file by its bytes and a folder by its name alone, so a rewrite of the same bytes reads as no change. */
+function described(path: string): string | undefined {
   try {
-    if (statSync(path).isFile()) return [described(path)];
-    return readdirSync(path, { recursive: true, encoding: "utf8" }).map((file) => described(join(path, file)));
+    if (statSync(path).isDirectory()) return `${path} folder`;
+    const bytes = readFileSync(path);
+    return `${path} ${bytes.length} ${createHash("sha256").update(bytes).digest("hex")}`;
   } catch {
-    return [];
+    return undefined;
   }
 }
 
-/** Every file in the real places, the secrets file among them, each with its size and modified time. */
+function filesAt(path: string): string[] {
+  let found: string[];
+  try {
+    found = statSync(path).isFile() ? [""] : readdirSync(path, { recursive: true, encoding: "utf8" });
+  } catch {
+    return [];
+  }
+  return found.filter((file) => !isWrittenByEveryLiveRun(file)).flatMap((file) => described(join(path, file)) ?? []);
+}
+
+/** Every file and folder in `places`, but what every live run writes, each file with its size and content hash. */
+export function placesSnapshot(places: readonly string[]): readonly string[] {
+  return [...new Set(places.flatMap(filesAt))].sort();
+}
+
+/** The snapshot of the real places, the secrets file among them. */
 export async function realPlacesSnapshot(): Promise<readonly string[]> {
-  return [...new Set((await realPlaces()).flatMap(filesAt))].sort();
+  return placesSnapshot(await realPlaces());
 }
