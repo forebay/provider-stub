@@ -165,6 +165,32 @@ describe("provider-stub under the host program, over runtime in a temporary home
     expect(JSON.parse(cooling.failure!.body)).toMatchObject({ type: "error", error: { type: "api_error", message: expect.stringContaining("cooling") } });
   }, RUN_BOUND);
 
+  it("answers 529 overloaded at once, before the latency wait, when the roll falls under fail_rate", async () => {
+    const { host } = await started({ fail_rate: 1, latency_ms: LONG_LATENCY });
+    await accountsOf(host).login();
+    const began = Date.now();
+
+    const answer = await callsOf(host).handle(argument(1n));
+
+    expect(answer.kind).toBe(enumsOf(host).forebay_provider_handle_kind.FOREBAY_PROVIDER_HANDLE_FAILURE);
+    expect(answer.failure?.status).toBe(529);
+    expect(JSON.parse(answer.failure!.body)).toEqual({ type: "error", error: { type: "overloaded_error", message: "Stub overloaded (fail_rate)" } });
+    expect(Date.now() - began).toBeLessThan(LONG_LATENCY / 2);
+  }, RUN_BOUND);
+
+  it("offers no models while its only account is disabled", async () => {
+    const { home: made, host } = await started();
+    await accountsOf(host).login();
+    const store = storeIn(made)!;
+    const stored = JSON.parse(readFileSync(store, "utf8")) as { accounts: { enabled: boolean }[] };
+    stored.accounts[0]!.enabled = false;
+    writeFileSync(store, JSON.stringify(stored));
+
+    const models = await callsOf(host).models();
+
+    expect(models.provider).toMatchObject({ provider: "provider-stub", models: [] });
+  }, RUN_BOUND);
+
   it("answers THROWN with the message of a setting it cannot read", async () => {
     const { host } = await started({ response_text: 5 });
     await accountsOf(host).login();
@@ -271,6 +297,21 @@ describe("provider-stub under the host program, over runtime in a temporary home
     const { FOREBAY_PROVIDER_HANDLE_THROWN, FOREBAY_PROVIDER_HANDLE_RESPONSE } = enumsOf(host).forebay_provider_handle_kind;
     expect((await cancelled).kind).toBe(FOREBAY_PROVIDER_HANDLE_THROWN);
     expect((await kept).kind).toBe(FOREBAY_PROVIDER_HANDLE_RESPONSE);
+  }, RUN_BOUND);
+
+  it("leaves a stream it handed back whole when its token is cancelled after", async () => {
+    const { host } = await started();
+    await accountsOf(host).login();
+    const calls = callsOf(host);
+    const { forebay_provider_handle_kind: handleKind, forebay_provider_next_kind: nextKind } = calls.enums();
+
+    const answer = await calls.handle(argument(5n, 1));
+    await expect(calls.cancel(5n)).resolves.toBeUndefined();
+    let events = 0;
+    for (let next = await calls.next(answer.stream); next.kind === nextKind.FOREBAY_PROVIDER_NEXT_EVENT; next = await calls.next(answer.stream)) events++;
+
+    expect(answer.kind, answer.message).toBe(handleKind.FOREBAY_PROVIDER_HANDLE_STREAM);
+    expect(events).toBe(6);
   }, RUN_BOUND);
 
   it("logs an account in and lists the accounts through the program's ACTION mode", async () => {
