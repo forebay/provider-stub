@@ -3,6 +3,7 @@
   "importName": "provider-stub",
   "id": "provider-stub",
   "version": "3.0.0",
+  "language": "typescript",
   "entry": "dist/plugin.js",
   "bundle": {
     "entry": "src/plugin.ts"

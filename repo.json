@@ -15,24 +15,24 @@
     {
       "id": "github:1427561829",
       "importName": "typescript",
-      "commit": "72cda3be758fbb87f3102c7118dbe1d20368b004"
+      "commit": "e60adefd969d597dd557f429b01f364847fa9fb7"
     },
     {
       "id": "github:1455223370",
       "importName": "core",
-      "commit": "0d62d7fd7ac5127a0ad5613bd9fa3643acb3cb39",
+      "commit": "15800809b3ee4fdb7aba4d43fe2e6f3015ab26a6",
       "path": "siblings/typescript/siblings/core"
     },
     {
       "id": "github:1456093642",
       "importName": "standard",
-      "commit": "a89f781acddf845b92d4abd405e8b93e1ac7d775",
+      "commit": "c94bdf2b6e8dd1ba4930a584fafb2e14a2c43145",
       "path": "siblings/typescript/siblings/standard"
     },
     {
       "id": "github:1426141679",
       "importName": "conformance",
-      "commit": "19217bfd6477a6433ee75213b795fa117eefdfc3",
+      "commit": "26f107cb225de17c7f8c87c840e70a6d3a807f56",
       "path": "siblings/typescript/siblings/conformance"
     },
     {
@@ -67,30 +67,36 @@
     {
       "id": "github:1434914426",
       "importName": "library",
-      "commit": "5f3520ed1865b136ef64777761467cf768f885aa"
+      "commit": "52a23deb77fad78c0426093e1ab55c1a86d2b15e"
     },
     {
       "id": "github:1455223370",
       "importName": "core",
-      "commit": "fba572ac6fc61ab719dd331a5409796c06ef23b4",
+      "commit": "15800809b3ee4fdb7aba4d43fe2e6f3015ab26a6",
       "path": "siblings/library/siblings/core"
     },
     {
       "id": "github:1456093642",
       "importName": "standard",
-      "commit": "832decb50711a34db9bf0d572f26fc4a52e5046f",
+      "commit": "c94bdf2b6e8dd1ba4930a584fafb2e14a2c43145",
       "path": "siblings/library/siblings/standard"
     },
     {
       "id": "github:1457141747",
       "importName": "c",
-      "commit": "89b98aea33e2704f7f3bcd5def7208d49ac006b9",
+      "commit": "f2deb90ac195aeb541a846c3d166e21467081c2c",
       "path": "siblings/library/siblings/c"
+    },
+    {
+      "id": "github:1472199689",
+      "importName": "naula",
+      "commit": "78e7ba4e19543de2e1b0dfe873e39e0cf9f2da5b",
+      "path": "siblings/library/siblings/naula"
     },
     {
       "id": "github:1298569559",
       "importName": "claude-code-proxy",
-      "commit": "778dd98f8605c89f0c37d557abfa7811db751c0f"
+      "commit": "646ef0494acd45b8a944b59112e1ffc8f10a9e04"
     }
   ]
 }

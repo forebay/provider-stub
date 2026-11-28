@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { RunningHost } from "@weivel/typescript/program";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ProviderEnums } from "../src/contract.js";
-import { bundled, homeWith, hostIn, realPlacesSnapshot, REPOSITORY, stubInstall, type Home, type Install } from "./fixtures/home.js";
+import { bundled, homeWith, hostIn, LANGUAGE, realPlacesSnapshot, REPOSITORY, stubInstall, type Home, type Install } from "./fixtures/home.js";
 
 const realBefore = await realPlacesSnapshot();
 const RUN_BOUND = 60_000;
@@ -50,6 +50,7 @@ function consumerInstall(): Install {
     importName: "consumer",
     id: "consumer",
     version: "1.0.0",
+    language: LANGUAGE,
     entry: "index.js",
     capabilities: { provides: [], consumes: ["forebay.provider"] },
     services: { provides: ["consumer:calls"], consumes: [] },

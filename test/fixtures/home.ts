@@ -8,6 +8,7 @@ import { describedLibrary, scratchHome, setVariables, type DescribedLibrary, typ
 
 export const REPOSITORY = resolve(import.meta.dirname, "..", "..");
 export const HOST_ID = "test-host";
+export const LANGUAGE = "typescript";
 
 const NATIVE = join(REPOSITORY, "native");
 const LIVE_RUN_FOLDERS = new Set(["logs", "processes"]);
@@ -49,13 +50,14 @@ function layOutHome(base: string, libraries: Readonly<Record<string, PlacedLibra
     installs: installs.map((install) => ({ manifest: install.manifest, entry_source: install.bundle, settings: install.settings })),
     libraries: [hintedLibrary("runtime", libraries.runtime!), hintedLibrary("forebay-library", libraries.forebay_library!)],
     holder: process.pid,
+    layers: [{ language: LANGUAGE, runtime: "javascript" }],
   };
   return testingService().lay_out_home!({ argument }) as Promise<LaidOutHome>;
 }
 
 /**
  * Lays out a fresh home under the temporary directory through runtime-testing, as an install leaves one: the
- * registered loader `test-host`, the javascript-host's hint naming runtime and forebay-library, every install enabled,
+ * registered loader `test-host`, the typescript-host's hint naming runtime and forebay-library, every install enabled,
  * and this process recorded as the loader's holder, so a SERVE run keeps running. The process's places point into it
  * until `remove`.
  */
@@ -95,7 +97,7 @@ export function stubInstall(bundle: string, settings: Record<string, unknown> = 
 /** Starts the host program over `home` with these arguments after the loader id, its log kept quiet. */
 export function hostIn(home: Home, actionArguments: readonly string[] = []): Promise<RunningHost> {
   const quiet = (): void => undefined;
-  return startHost({ hostLibraryPath: home.runtime, arguments: [HOST_ID, ...actionArguments], log: { debug: quiet, info: quiet, warn: quiet, error: quiet } });
+  return startHost({ hostLibraryPath: home.runtime, arguments: [LANGUAGE, HOST_ID, ...actionArguments], log: { debug: quiet, info: quiet, warn: quiet, error: quiet } });
 }
 
 /** Every line the loader's log files in `home` hold, readable once the run stopped and its writer wrote them. */
